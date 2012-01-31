@@ -9,15 +9,49 @@ bld_gmp_dir := $(BLD)/build_gmp
 
 .PHONY: prep all
 
-all: patch_source
+all: gmp_build
 
 include packages.mk
-$(foreach p,$(PACKAGES),$(eval $(call prepare_source,$(p))))
-$(foreach p,$(PATCHES),$(eval $(call patch_source,$(p))))
+#$(foreach p,$(PACKAGES),$(eval $(call prepare_source,$(p))))
+#$(foreach p,$(PATCHES),$(eval $(call patch_source,$(p))))
 
 patch_source: $(UNTAR_TGTS) $(PATCHED_TGTS)
 
 clean:
+
+linux_tar := $(TAR_DIR)/linux-$(LINUX_VER).tar.bz2
+linux_src:= $(SRC)/linux-$(LINUX_VER)/.linux_untared
+$(linux_src) : $(linux_tar)
+	$(call UNTARCMD) && \
+	touch $@
+
+linux_dest := $(CLFS_FINAL)/include/.linux_hdr
+$(linux_dest): $(linux_src) 
+	@install -dv $(dir $(linux_dest))
+	@(cd $(dir $<) && \
+		$(MAKE) mrproper && \
+		$(MAKE) ARCH=$(TARGET_ARCH) headers_check && \
+		$(MAKE) ARCH=$(TARGET_ARCH) INSTALL_HDR_PATH=dest headers_install && \
+		cp -rv dest/include/* $(dir $(linux_dest)) && \
+		touch $@; \
+	)
+install_linux: $(linux_dest)
+
+gmp_tar := $(TAR_DIR)/gmp-$(GMP_VER).tar.bz2
+gmp_src := $(SRC)/gmp-$(GMP_VER)/.gmp_untared
+$(gmp_src) : $(gmp_tar) $(linux_dest)
+	$(call UNTARCMD) && \
+	touch $@
+
+gmp_dest := $(CLFS_TEMP)/lib/libgmpxx.a
+gmp_build: $(gmp_dest)
+
+$(gmp_dest): $(gmp_src) 
+	@(cd $(dir $<) && \
+		CPPFLAGS=-fexceptions ./configure --prefix=$(call parent,$(call parent,$@)) --enable-cxx && \
+		$(MAKE) && $(MAKE) install \
+	)
+
 
 prep_patch: prep_src
 	@(if [ ! -e $(SRC)/.src_patched ] ; then \
