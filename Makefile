@@ -9,7 +9,7 @@ bld_gmp_dir := $(BLD)/build_gmp
 
 .PHONY: prep all
 
-all: gmp_build
+all: mpfr_build
 
 include packages.mk
 #$(foreach p,$(PACKAGES),$(eval $(call prepare_source,$(p))))
@@ -44,14 +44,25 @@ $(gmp_src) : $(gmp_tar) $(linux_dest)
 	touch $@
 
 gmp_dest := $(CLFS_TEMP)/lib/libgmpxx.a
-gmp_build: $(gmp_dest)
-
 $(gmp_dest): $(gmp_src) 
 	@(cd $(dir $<) && \
 		CPPFLAGS=-fexceptions ./configure --prefix=$(call parent,$(call parent,$@)) --enable-cxx && \
 		$(MAKE) && $(MAKE) install \
 	)
 
+mpfr_tar := $(TAR_DIR)/mpfr-$(MPFR_VER).tar.bz2
+mpfr_src := $(SRC)/mpfr-$(MPFR_VER)/.mpfr_untared
+$(mpfr_src) : $(mpfr_tar) 
+	$(call UNTARCMD) && \
+	touch $@
+
+mpfr_dest := $(CLFS_TEMP)/lib/libmpfr.so
+$(mpfr_dest): $(mpfr_src) $(gmp_dest)
+	@(cd $(dir $<) && \
+		LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
+		./configure --prefix=$(CLFS_TEMP) --enable-shared --with-gmp=$(CLFS_TEMP) && \
+		$(MAKE) && $(MAKE) install)
+mpfr_build: $(mpfr_dest)
 
 prep_patch: prep_src
 	@(if [ ! -e $(SRC)/.src_patched ] ; then \
