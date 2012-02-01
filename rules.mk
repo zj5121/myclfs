@@ -33,6 +33,28 @@ PATCHCMD = @($(call echo_cmd,-n,$(INFO_PATCH_SRC)); patch -d $(dir $@)$(shell ec
 UNTAR_TGTS :=
 PATCH_TGTS :=
 
+# $1 = package base name. i.e. cloog-ppl
+# $2 = package version. i.e. 0.15.11
+# $3 = package suffix name. i.e. tar.gz
+# $4 = package target
+# $5 = dependent package
+# $6 = prep action.   i.e. cp -v configure{,.orig} && sed ....
+# $7 = configure cmd. i.e. configure --with-gmp=$(CLFS_TEMP)
+# $8 = make cmd
+# $9 = install cmd
+define build_pass1
+$(strip $(1))_tar := $(SRC)/$(strip $(1))-$(2).$(3)
+$(strip $(1))_src := $(SRC)/$(strip $(1))-$(2)/.$(strip $(1))_untared
+$($(strip $(1))_src) : $($(strip $(1))_tar)
+	$(value UNTARCMD) && touch $$@
+
+$(strip $(1))_dest := $(4)
+$(strip $(1))_blddir := $(BLD)/$(notdir $($(strip $(strip $(1)))_src))
+$($(strip $(1))_dest) : $($(strip $(1))_src) $(5)
+	@(mkdir -p $($(strip $(1))_blddir && cd $($(b)_blddir) && $(or $(6) &&,)&& $(or $(7) &&,) && $(8))&& $(9)
+
+endef
+	
 # $1 = tar file
 define prepare_source
 $(SRC)/.$(notdir $(1)): $(1)
