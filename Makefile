@@ -35,7 +35,6 @@ $(linux_dest): $(linux_src)
 		cp -rv dest/include/* $(dir $(linux_dest)) && \
 		touch $@; \
 	)
-install_linux: $(linux_dest)
 
 gmp_tar := $(TAR_DIR)/gmp-$(GMP_VER).tar.bz2
 gmp_src := $(SRC)/gmp-$(GMP_VER)/.gmp_untared
@@ -44,10 +43,13 @@ $(gmp_src) : $(gmp_tar) $(linux_dest)
 	touch $@
 
 gmp_dest := $(CLFS_TEMP)/lib/libgmpxx.a
+gmp_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp_dest): $(gmp_src) 
-	@(cd $(dir $<) && \
-		CPPFLAGS="-fexceptions ./configure --prefix=$(call parent,$(call parent,$@)) --enable-cxx && \
-		$(MAKE) && $(MAKE) install \
+	(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
+	cd $(gmp_bld) && \
+	CPPFLAGS="-fexceptions" $(dir $(gmp_src))/configure \
+	--prefix=$(call parent,$(call parent,$@)) --enable-cxx && \
+	$(MAKE) && $(MAKE) install \
 	)
 
 mpfr_tar := $(TAR_DIR)/mpfr-$(MPFR_VER).tar.bz2
@@ -57,13 +59,15 @@ $(mpfr_src) : $(mpfr_tar)
 	touch $@
 
 mpfr_dest := $(CLFS_TEMP)/lib/libmpfr.so
+mpfr_bld  := $(BLD)/mpfr-$(GMP_VER)
 $(mpfr_dest): $(mpfr_src) $(gmp_dest)
-	@(cd $(dir $<) && \
-		CPPFLAGS="-I$(CLFS_TEMP)/include" \
-		CFLAGS="-I$(CFLAGS)/include" \
-		LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-		./configure --prefix=$(CLFS_TEMP) --enable-shared --with-gmp=$(CLFS_TEMP) && \
-		$(MAKE) && $(MAKE) install)
+	@(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
+	cd $(mpfr_bld) && \
+	CPPFLAGS="-I$(CLFS_TEMP)/include" \
+	CFLAGS="-I$(CFLAGS)/include" \
+	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
+	$(dir $(mpfr_src))/configure --prefix=$(CLFS_TEMP) --enable-shared --with-gmp=$(CLFS_TEMP) && \
+	$(MAKE) && $(MAKE) install)
 
 mpc_tar := $(TAR_DIR)/mpc-$(MPC_VER).tar.gz
 mpc_src := $(SRC)/mpc-$(MPC_VER)/.mpc_untared
@@ -72,11 +76,13 @@ $(mpc_src) : $(mpc_tar)
 	touch $@
 
 mpc_dest := $(CLFS_TEMP)/lib/libmpc.so
+mpc_bld := $(BLD)/mpc-$(MPC_VER)
 $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
-	@(cd $(dir $<) &&\
+	@(rm -fr $(mpc_bld) && mkdir -p $(mpc_bld) &&\
+	cd $(mpc_bld) &&\
 	CPPFLAGS="-I$(CLFS_TEMP)/include" \
 	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-	./configure --prefix=$(CLFS_TEMP) --with-gmp=$(CLFS_TEMP) --with-mpfr=$(CLFS_TEMP) &&\
+	$(dir $(mpc_src))/configure --prefix=$(CLFS_TEMP) --with-gmp=$(CLFS_TEMP) --with-mpfr=$(CLFS_TEMP) &&\
 	$(MAKE) && $(MAKE) install)
 
 ppl_tar := $(TAR_DIR)/ppl-$(PPL_VER).tar.bz2
@@ -86,41 +92,35 @@ $(ppl_src) : $(ppl_tar)
 	touch $@
 
 ppl_dest := $(CLFS_TEMP)/lib/libppl.so
+ppl_bld := $(BLD)/ppl-$(PPL_VER)
 $(ppl_dest): $(ppl_src) $(gmp_dest)
-	@(cd $(dir $<) && \
+	@(rm -fr $(ppl_bld) && mkdir -p $(ppl_bld) &&\
+	cd $(ppl_bld) && \
 	CFLAGS="-I$(CLFS_TEMP)/include" CPPFLAGS="-I$(CLFS_TEMP)/include" \
 	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-	./configure --prefix=$(CLFS_TEMP) --enable-shared \
+	$(dir $(ppl_src))/configure --prefix=$(CLFS_TEMP) --enable-shared \
 	--enable-interfaces="c,cxx" --disable-optimization \
 	--with-libgmp-prefix=$(CLFS_TEMP) \
 	--with-libgmpxx-prefix=$(CLFS_TEMP) && \
 	$(MAKE) && $(MAKE) install)
 
-$(eval $(call build_pass1,\
-cloog-ppl,$(CLOOG_VER),tar.gz,$(CLFS_TEMP)/lib/libcloog.so,\
-ppl_dest gmp_dest,\
-cp -v configure{,.orig}&&sed -e "/LD_LIBRARY_PATH/d" configure.orig > confiure,\
-LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-./configure --prefix=$(CLFS_TEMP) --enable-shared --with-bits=gmp \
---with-gmp=$(CLFS_TEMP) --with-ppl=$(CLFS_TEMP),\
-$(MAKE),$(MAKE) install\
-))
+cloog_tar := $(TAR_DIR)/cloog-ppl-$(CLOOG_VER).tar.gz
+cloog_src := $(SRC)/cloog-ppl-$(CLOOG_VER)/.cloog_untared
+$(cloog_src) : $(cloog_tar)
+	$(call UNTARCMD) && \
+	touch $@
 
-# cloog_tar := $(TAR_DIR)/cloog-ppl-$(CLOOG_VER).tar.gz
-# cloog_src := $(SRC)/cloog-ppl-$(CLOOG_VER)/.cloog_untared
-# $(cloog_src) : $(cloog_tar)
-# 	$(call UNTARCMD) && \
-# 	touch $@
-
-# cloog_dest := $(CLFS_TEMP)/lib/libcloog.so
-# $(cloog_dest): $(cloog_src) $(gmp_dest) $(ppl_dest)
-# 	@(cd $(dir $<) && \
-# 	cp -v configure{,.orig} && \
-# 	sed -e "/LD_LIBRARY_PATH=/d" configure.orig > configure && \
-# 	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-# 	./configure --prefix=$(CLFS_TEMP) --enable-shared --with-bits=gmp \
-# 	--with-gmp=$(CLFS_TEMP) --with-ppl=$(CLFS_TEMP) && \
-# 	$(MAKE) && $(MAKE) install)
+cloog_dest := $(CLFS_TEMP)/lib/libcloog.so
+cloog_bld := $(BLD)/cloog-ppl-$(CLOOG_VER)
+$(cloog_dest): $(cloog_src) $(gmp_dest) $(ppl_dest)
+	@(rm -fr $(cloog_bld) && mkdir -p $(cloog_bld) &&\
+	cd $(dir $(cloog_src)) && \
+	cp -v configure{,.orig} && \
+	sed -e "/LD_LIBRARY_PATH=/d" configure.orig > configure && \
+	cd $(cloog_bld) && LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
+	$(dir $(cloog_src))/configure --prefix=$(CLFS_TEMP) --enable-shared --with-bits=gmp \
+	--with-gmp=$(CLFS_TEMP) --with-ppl=$(CLFS_TEMP) && \
+	$(MAKE) && $(MAKE) install)
 
 
 build: $(cloog_dest)
