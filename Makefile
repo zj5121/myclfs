@@ -52,15 +52,11 @@ $(gmp_dest): $(gmp_src)
 	$(MAKE) && $(MAKE) install \
 	)
 
-mpfr_tar := $(TAR_DIR)/mpfr-$(MPFR_VER).tar.bz2
-mpfr_src := $(SRC)/mpfr-$(MPFR_VER)/.mpfr_untared
-$(mpfr_src) : $(mpfr_tar) 
-	$(call UNTARCMD) && \
-	touch $@
-
+$(eval $(call prepare_source,mpfr,$(MPFR_VER),tar.bz2))
+$(eval $(call patch_source,mpfr,$(MPFR_VER),fixes-1))
 mpfr_dest := $(CLFS_TEMP)/lib/libmpfr.so
-mpfr_bld  := $(BLD)/mpfr-$(GMP_VER)
-$(mpfr_dest): $(mpfr_src) $(gmp_dest)
+mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
+$(mpfr_dest): $(mpfr-$(MPFR_VER)-fixes-1_patch_dest) $(gmp_dest)
 	@(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
 	cd $(mpfr_bld) && \
 	CPPFLAGS="-I$(CLFS_TEMP)/include" \
@@ -69,12 +65,8 @@ $(mpfr_dest): $(mpfr_src) $(gmp_dest)
 	$(dir $(mpfr_src))/configure --prefix=$(CLFS_TEMP) --enable-shared --with-gmp=$(CLFS_TEMP) && \
 	$(MAKE) && $(MAKE) install)
 
-mpc_tar := $(TAR_DIR)/mpc-$(MPC_VER).tar.gz
-mpc_src := $(SRC)/mpc-$(MPC_VER)/.mpc_untared
-$(mpc_src) : $(mpc_tar)
-	$(call UNTARCMD) && \
-	touch $@
 
+$(eval $(call prepare_source,mpc,$(MPC_VER),tar.gz))
 mpc_dest := $(CLFS_TEMP)/lib/libmpc.so
 mpc_bld := $(BLD)/mpc-$(MPC_VER)
 $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
@@ -85,15 +77,11 @@ $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
 	$(dir $(mpc_src))/configure --prefix=$(CLFS_TEMP) --with-gmp=$(CLFS_TEMP) --with-mpfr=$(CLFS_TEMP) &&\
 	$(MAKE) && $(MAKE) install)
 
-ppl_tar := $(TAR_DIR)/ppl-$(PPL_VER).tar.bz2
-ppl_src := $(SRC)/ppl-$(PPL_VER)/.ppl_untared
-$(ppl_src) : $(ppl_tar)
-	$(call UNTARCMD) &&\
-	touch $@
-
+$(eval $(call prepare_source,ppl,$(PPL_VER),tar.bz2))
 ppl_dest := $(CLFS_TEMP)/lib/libppl.so
 ppl_bld := $(BLD)/ppl-$(PPL_VER)
-$(ppl_dest): $(ppl_src) $(gmp_dest)
+$(ppl_dest): $(ppl_src) $(mpc_dest)
+	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(ppl_bld)))
 	@(rm -fr $(ppl_bld) && mkdir -p $(ppl_bld) &&\
 	cd $(ppl_bld) && \
 	CFLAGS="-I$(CLFS_TEMP)/include" CPPFLAGS="-I$(CLFS_TEMP)/include" \
@@ -104,26 +92,40 @@ $(ppl_dest): $(ppl_src) $(gmp_dest)
 	--with-libgmpxx-prefix=$(CLFS_TEMP) && \
 	$(MAKE) && $(MAKE) install)
 
-cloog_tar := $(TAR_DIR)/cloog-ppl-$(CLOOG_VER).tar.gz
-cloog_src := $(SRC)/cloog-ppl-$(CLOOG_VER)/.cloog_untared
-$(cloog_src) : $(cloog_tar)
-	$(call UNTARCMD) && \
-	touch $@
 
+$(eval $(call prepare_source,cloog-ppl,$(CLOOG_VER),tar.gz))
 cloog_dest := $(CLFS_TEMP)/lib/libcloog.so
 cloog_bld := $(BLD)/cloog-ppl-$(CLOOG_VER)
-$(cloog_dest): $(cloog_src) $(gmp_dest) $(ppl_dest)
+$(cloog_dest): $(cloog-ppl_src) $(gmp_dest) $(ppl_dest)
+	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(cloog_bld))))
 	@(rm -fr $(cloog_bld) && mkdir -p $(cloog_bld) &&\
-	cd $(dir $(cloog_src)) && \
+	cd $(dir $(cloog-ppl_src)) && \
 	cp -v configure{,.orig} && \
 	sed -e "/LD_LIBRARY_PATH=/d" configure.orig > configure && \
 	cd $(cloog_bld) && LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-	$(dir $(cloog_src))/configure --prefix=$(CLFS_TEMP) --enable-shared --with-bits=gmp \
+	$(dir $(cloog-ppl_src))/configure --prefix=$(CLFS_TEMP) --enable-shared --with-bits=gmp \
 	--with-gmp=$(CLFS_TEMP) --with-ppl=$(CLFS_TEMP) && \
 	$(MAKE) && $(MAKE) install)
 
+# bintuils pass1
+$(eval $(call prepare_source,binutils,2.22,tar.bz2))
+binutils_dest := $(CLFS_TEMP)/bin/$(TARGET)-ar
+binutils_bld := $(BLD)/binutils-$(BINUTILS_VER)
+$(binutils_dest): $(binutils_src) $(cloog_dest)
+	@(rm -fr $(binutils_bld) && mkdir -p $(binutils_bld) && \
+	cd $(binutils_bld) && \
+	AR=ar AS=as $(dir $(binutils_src))/configure \
+	--prefix=$(CLFS_TEMP) --host=$(HOST) --target=$(TARGET) \
+	--with-sysroot=$(CLFS) --with-lib-path=$(CLFS_FINAL)/lib \
+	--disable-nls --enable-shared \
+	--disable-multilib && \
+	$(MAKE) configure-host && \
+	$(MAKE) && $(MAKE) install && \
+	cp -v $(dir $(binutils_src))/include/libiberty.h $(CLFS_FINAL)/include)
 
-build: $(cloog_dest)
+# gcc-4.6 pass1
+$(eval $(call prepare_source,gcc,4.6.2,tar.bz2))
+build: $(binutils_dest)	
 
 prep_patch: prep_src
 	@(if [ ! -e $(SRC)/.src_patched ] ; then \
