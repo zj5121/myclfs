@@ -25,11 +25,13 @@ UNTAR.gz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar zxf
 UNTAR.xz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar Jxf 
 
 define UNTARCMD
-		@(mkdir -p $(dir $@))
-		@($(UNTAR$(suffix $<)) $< -C $(call parent,$(call parent,$@)) && touch $@ && $(call echo_cmd,, done))
+@($(UNTAR$(suffix $<)) $< -C $(SRC) && touch $@ && $(call echo_cmd,, done))
 endef
 
-PATCHCMD = $(call echo_cmd,-n,$(INFO_PATCH_SRC) $(notdir $<)); patch -d $(dir $@) -i $< -p1 2>&1 >/dev/null && $(call echo_cmd,, ... done)
+PATCH_ = $(call echo_cmd,-n,$(INFO_PATCH_SRC) $(notdir $<) ...); patch -d $(dir $@) -i $< -p1 2>&1 >/dev/null
+define PATCHCMD
+@($(PATCH_) && touch $@ && $(call echo_cmd,, done))
+endef
 
 UNTAR_TGTS :=
 PATCH_TGTS :=
@@ -37,24 +39,36 @@ PATCH_TGTS :=
 # $1 = name
 # $2 = version
 # $3 = suffix
+# $4 = subname, optional
+# export var: $(1)_src $(1)_tar
 define prepare_source
-$(1)_src := $(SRC)/$(1)-$(2)/.$(1)_untared
-$(1)_tar := $(TAR_DIR)/$(1)-$(2).$(3)
-$$($(1)_src): $$($(1)_tar)
+$(1)$(if $(4),-$(4),)_untared := $(SRC)/$(1)-$(2)/.$(1)-$(if $(4),$(4)-,)$(2)_untared
+$(1)$(if $(4),-$(4),)_tar := $(TAR_DIR)/$(1)-$(if $(4),$(4)-,)$(2).$(3)
+$$($(1)$(if $(4),-$(4),)_untared): $$($(1)$(if $(4),-$(4),)_tar)
 	$(value UNTARCMD)
 
+$(1)_src := $$($(1)_src) $$($(1)$(if $(4),-$(4),)_untared)
+#$$(warning $$($(1)_src))
 #UNTAR_TGTS = $(SRC)/.$(notdir $(1)) $(UNTAR_TGTS)
 endef
 
 # $1 = name
 # $2 = version
 # $3 = patch name
-define patch_source
-$(1)-$(2)-$(3)_patch := $(PATCH_DIR)/$(1)-$(2)-$(3).patch
-$(1)-$(2)-$(3)_patch_dest := $$(dir $$($(1)_src)).$$(notdir $$($(1)-$(2)-$(3)_patch))
-$$($(1)-$(2)-$(3)_patch_dest): $$($(1)-$(2)-$(3)_patch) $$($(1)_src)
-		$(value PATCHCMD) && touch $$@
+# $4 = dependency (optional)
+define patch_source_
+$(1)-$(3)_patch := $(PATCH_DIR)/$(1)-$(2)-$(3).patch
+$(1)-$(3)_patch_dest := $$(dir $$(firstword $$($(1)_src))).$$(notdir $$($(1)-$(3)_patch))
+$$($(1)-$(3)_patch_dest): $$($(1)-$(3)_patch) $$($(1)_src) $(4)
+	$(value PATCHCMD)
 
-#PATCH_TGTS = $(SRC)/.$(notdir $(1)) $(PATCH_TGTS)
-#$$(info ***$$($(1)-$(2)-$(3)_patch_dest) , $$($(1)_src))
+$(1)_patched := $$($(1)_patched) $$($(1)-$(3)_patch_dest) 
+#$$(warning $(1)-$(3)_patch_dest = $$($(1)-$(3)_patch_dest))
+#$$(warning $(1)_patched = $$($(1)_patched))
 endef
+
+# $1 = pache list name
+# $2 = basename, like gcc
+# $3 = version
+patch_source = $(foreach p,$($(1)),$(eval $(call patch_source_,$(2),$(3),$(p),$($(1)_src))))
+

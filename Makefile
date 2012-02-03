@@ -36,12 +36,7 @@ $(linux_dest): $(linux_src)
 		touch $@; \
 	)
 
-gmp_tar := $(TAR_DIR)/gmp-$(GMP_VER).tar.bz2
-gmp_src := $(SRC)/gmp-$(GMP_VER)/.gmp_untared
-$(gmp_src) : $(gmp_tar) $(linux_dest)
-	$(call UNTARCMD) && \
-	touch $@
-
+$(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
 gmp_dest := $(CLFS_TEMP)/lib/libgmpxx.a
 gmp_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp_dest): $(gmp_src) 
@@ -53,10 +48,10 @@ $(gmp_dest): $(gmp_src)
 	)
 
 $(eval $(call prepare_source,mpfr,$(MPFR_VER),tar.bz2))
-$(eval $(call patch_source,mpfr,$(MPFR_VER),fixes-1))
+$(eval $(call patch_source,MPFR_PATCHES,mpfr,fixes-1))
 mpfr_dest := $(CLFS_TEMP)/lib/libmpfr.so
 mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
-$(mpfr_dest): $(mpfr-$(MPFR_VER)-fixes-1_patch_dest) $(gmp_dest)
+$(mpfr_dest): $(mpfr_patched) $(gmp_dest)
 	@(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
 	cd $(mpfr_bld) && \
 	CPPFLAGS="-I$(CLFS_TEMP)/include" \
@@ -124,8 +119,14 @@ $(binutils_dest): $(binutils_src) $(cloog_dest)
 	cp -v $(dir $(binutils_src))/include/libiberty.h $(CLFS_FINAL)/include)
 
 # gcc-4.6 pass1
-$(eval $(call prepare_source,gcc,4.6.2,tar.bz2))
-build: $(binutils_dest)	
+$(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,core))
+$(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,g++))
+$(call patch_source,GCC_PATCHES,gcc,$(GCC_VER))
+gcc_dest := $(CLFS_TEMP)/bin/$(TARGET)-gcc
+gcc_bld := $(BLD)/gcc-$(GCC_VER)
+$(gcc_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
+
+build: $(gcc_dest)
 
 prep_patch: prep_src
 	@(if [ ! -e $(SRC)/.src_patched ] ; then \
