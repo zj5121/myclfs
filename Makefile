@@ -1,30 +1,16 @@
 include config.mk
 include rules.mk
 
-bld_nutils_dir := $(BLD)/build_binutils
-bld_gcc_dir := $(BLD)/build_gcc
-bld_mpc_dir := $(BLD)/build_mpc
-bld_mpfr_dir := $(BLD)/build_mpfr
-bld_gmp_dir := $(BLD)/build_gmp
+curdir := $(shell pwd)
 
 .PHONY: prep all
 
 all: build
 
 include packages.mk
-#$(foreach p,$(PACKAGES),$(eval $(call prepare_source,$(p))))
-#$(foreach p,$(PATCHES),$(eval $(call patch_source,$(p))))
 
-patch_source: $(UNTAR_TGTS) $(PATCHED_TGTS)
 
-clean:
-
-linux_tar := $(TAR_DIR)/linux-$(LINUX_VER).tar.bz2
-linux_src:= $(SRC)/linux-$(LINUX_VER)/.linux_untared
-$(linux_src) : $(linux_tar)
-	$(call UNTARCMD) && \
-	touch $@
-
+$(eval $(call prepare_source,linux,$(LINUX_VER),tar.bz2))
 linux_dest := $(CLFS_FINAL)/include/.linux_hdr
 $(linux_dest): $(linux_src) 
 	@install -dv $(dir $(linux_dest))
@@ -40,7 +26,8 @@ $(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
 gmp_dest := $(CLFS_TEMP)/lib/libgmpxx.a
 gmp_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp_dest): $(gmp_src) 
-	(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
+	@(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
+	source $(curdir)/env.sh && \
 	cd $(gmp_bld) && \
 	CPPFLAGS="-fexceptions" $(dir $(gmp_src))/configure \
 	--prefix=$(call parent,$(call parent,$@)) --enable-cxx && \
@@ -48,11 +35,12 @@ $(gmp_dest): $(gmp_src)
 	)
 
 $(eval $(call prepare_source,mpfr,$(MPFR_VER),tar.bz2))
-$(eval $(call patch_source,MPFR_PATCHES,mpfr,fixes-1))
+$(eval $(call patch_source,MPFR_PATCHES,mpfr,3.1.0))
 mpfr_dest := $(CLFS_TEMP)/lib/libmpfr.so
 mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
 $(mpfr_dest): $(mpfr_patched) $(gmp_dest)
 	@(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
+	source $(curdir)/env.sh && \
 	cd $(mpfr_bld) && \
 	CPPFLAGS="-I$(CLFS_TEMP)/include" \
 	CFLAGS="-I$(CFLAGS)/include" \
@@ -66,6 +54,7 @@ mpc_dest := $(CLFS_TEMP)/lib/libmpc.so
 mpc_bld := $(BLD)/mpc-$(MPC_VER)
 $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
 	@(rm -fr $(mpc_bld) && mkdir -p $(mpc_bld) &&\
+	source $(curdir)/env.sh && \
 	cd $(mpc_bld) &&\
 	CPPFLAGS="-I$(CLFS_TEMP)/include" \
 	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
@@ -78,6 +67,7 @@ ppl_bld := $(BLD)/ppl-$(PPL_VER)
 $(ppl_dest): $(ppl_src) $(mpc_dest)
 	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(ppl_bld)))
 	@(rm -fr $(ppl_bld) && mkdir -p $(ppl_bld) &&\
+	source $(curdir)/env.sh && \
 	cd $(ppl_bld) && \
 	CFLAGS="-I$(CLFS_TEMP)/include" CPPFLAGS="-I$(CLFS_TEMP)/include" \
 	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
@@ -94,6 +84,7 @@ cloog_bld := $(BLD)/cloog-ppl-$(CLOOG_VER)
 $(cloog_dest): $(cloog-ppl_src) $(gmp_dest) $(ppl_dest)
 	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(cloog_bld))))
 	@(rm -fr $(cloog_bld) && mkdir -p $(cloog_bld) &&\
+	source $(curdir)/env.sh && \
 	cd $(dir $(cloog-ppl_src)) && \
 	cp -v configure{,.orig} && \
 	sed -e "/LD_LIBRARY_PATH=/d" configure.orig > configure && \
@@ -106,8 +97,9 @@ $(cloog_dest): $(cloog-ppl_src) $(gmp_dest) $(ppl_dest)
 $(eval $(call prepare_source,binutils,2.22,tar.bz2))
 binutils_dest := $(CLFS_TEMP)/bin/$(TARGET)-ar
 binutils_bld := $(BLD)/binutils-$(BINUTILS_VER)
-$(binutils_dest): $(binutils_src) $(cloog_dest)
+$(binutils_dest): $(binutils_src) $(cloog_dest) $(linux_dest)
 	@(rm -fr $(binutils_bld) && mkdir -p $(binutils_bld) && \
+	source $(curdir)/env.sh && \
 	cd $(binutils_bld) && \
 	AR=ar AS=as $(dir $(binutils_src))/configure \
 	--prefix=$(CLFS_TEMP) --host=$(HOST) --target=$(TARGET) \
@@ -116,6 +108,7 @@ $(binutils_dest): $(binutils_src) $(cloog_dest)
 	--disable-multilib && \
 	$(MAKE) configure-host && \
 	$(MAKE) && $(MAKE) install && \
+	mkdir -p $(CLFS_FINAL)/include && \
 	cp -v $(dir $(binutils_src))/include/libiberty.h $(CLFS_FINAL)/include)
 
 # gcc-4.6 pass1
@@ -124,7 +117,36 @@ $(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,g++))
 $(call patch_source,GCC_PATCHES,gcc,$(GCC_VER))
 gcc_dest := $(CLFS_TEMP)/bin/$(TARGET)-gcc
 gcc_bld := $(BLD)/gcc-$(GCC_VER)
-$(gcc_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
+$(gcc_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest) 
+	(echo -en '#undef STANDARD_INCLUDE_DIR\n#define STANDARD_INCLUDE_DIR "$(CLFS_FINAL)/include/"\n\n' >> $(gcc_src_dir)/gcc/config/linux.h && \
+	echo -en '\n#undef STANDARD_STARTFILE_PREFIX_1\n#define STANDARD_STARTFILE_PREFIX_1 "$(CLFS_FINAL)/lib/"\n' >> $(gcc_src_dir)/gcc/config/linux.h && \
+	echo -en '\n#undef STANDARD_STARTFILE_PREFIX_2\n#define STANDARD_STARTFILE_PREFIX_2 ""\n' >> $(gcc_src_dir)/gcc/config/linux.h) && \
+	cp -v $(gcc_src_dir)/gcc/Makefile.in{,.orig} && \
+	sed -e "s@\(^CROSS_SYSTEM_HEADER_DIR =\).*@\1 $(CLFS_FINAL)/include@g" \
+	$(gcc_src_dir)/gcc/Makefile.in.orig > $(gcc_src_dir)/gcc/Makefile.in && \
+	touch $(CLFS_FINAL)/include/limits.h && \
+	rm -fr $(gcc_bld) && \
+	source $(curdir)/env.sh && \
+	mkdir -p $(gcc_bld) && cd $(gcc_bld) && \
+	PATH=${PATH} && \
+	AR=ar LDFLAGS="-Wl,-rpath,$(CLFS_TEMP)/lib" \
+  	$(gcc_src_dir)/configure --prefix=$(CLFS_TEMP) \
+	  --build=$(HOST) --host=$(HOST) --target=$(TARGET) \
+	  --with-sysroot=$(CLFS) --with-local-prefix=$(CLFS_FINAL) --disable-nls \
+	  --disable-shared --with-mpfr=$(CLFS_TEMP) --with-gmp=$(CLFS_TEMP) \
+	  --with-ppl=$(CLFS_TEMP) --with-cloog=$(CLFS_TEMP) \
+	  --without-headers --with-newlib --disable-decimal-float \
+	  --disable-libgomp --disable-libmudflap --disable-libssp \
+	  --disable-threads --enable-languages=c --disable-multilib \
+	  --with-arch=$(TARGET_ARCH) &&\
+	$(MAKE) all-gcc && $(MAKE) install-gcc 
+	#all-target-libgcc && $(MAKE) install-gcc install-target-libgcc
+
+libgcc_dest := $(CLFS_TEMP)/lib/gcc/libgcc.a
+libgcc_bld := $(BLD)/gcc-$(GCC_VER)
+$(libgcc_dest) : $(gcc_dest)
+	@(source $(curdir)/env.sh && cd $(gcc_bld) &&
+	$(MAKE) all-target-libgcc && $(MAKE install-target-libgcc))
 
 build: $(gcc_dest)
 

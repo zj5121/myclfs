@@ -5,7 +5,7 @@ Origin: Idea originally developed by Ryan Oliver and Greg Schafer for
         the Pure LFS project.
 Upstream Status: Not Applied - CLFS Specific
 Description: The specs patch changes the location of the dynamic linker as
-             well as the link spec to /tools/lib{,32,64}.
+             well as the link spec to /cross/tools/lib{,32,64}.
 
     Rediffed Against 4.5.2 By Joe Ciccone <jciccone@gmail.com>
     Rediffed Against 4.6.0 By Joe Ciccone <jciccone@gmail.com>
@@ -18,7 +18,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/alpha/gnu.h gcc-4.6.0/gcc/config/alpha/gnu.
  
  #undef ELF_DYNAMIC_LINKER
 -#define ELF_DYNAMIC_LINKER	"/lib/ld.so"
-+#define ELF_DYNAMIC_LINKER	"/tools/lib/ld.so"
++#define ELF_DYNAMIC_LINKER	"/cross/tools/lib/ld.so"
  
  #undef	STARTFILE_SPEC
  #define STARTFILE_SPEC \
@@ -31,8 +31,8 @@ diff -Naur gcc-4.6.0.orig/gcc/config/alpha/linux-elf.h gcc-4.6.0/gcc/config/alph
  
 -#define GLIBC_DYNAMIC_LINKER	"/lib/ld-linux.so.2"
 -#define UCLIBC_DYNAMIC_LINKER "/lib/ld-uClibc.so.0"
-+#define GLIBC_DYNAMIC_LINKER	"/tools/lib/ld-linux.so.2"
-+#define UCLIBC_DYNAMIC_LINKER "/tools/lib/ld-uClibc.so.0"
++#define GLIBC_DYNAMIC_LINKER	"/cross/tools/lib/ld-linux.so.2"
++#define UCLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-uClibc.so.0"
  #if DEFAULT_LIBC == LIBC_UCLIBC
  #define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:" G ";:" U "}"
  #elif DEFAULT_LIBC == LIBC_GLIBC
@@ -44,7 +44,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/arm/linux-eabi.h gcc-4.6.0/gcc/config/arm/l
     GNU/Linux binaries on an EABI system.  */
  #undef  GLIBC_DYNAMIC_LINKER
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.3"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld-linux.so.3"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-linux.so.3"
  
  /* At this point, bpabi.h will have clobbered LINK_SPEC.  We want to
     use the GNU/Linux version, not the generic BPABI version.  */
@@ -56,7 +56,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/arm/linux-elf.h gcc-4.6.0/gcc/config/arm/li
  #define LIBGCC_SPEC "%{msoft-float:-lfloat} %{mfloat-abi=soft*:-lfloat} -lgcc"
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-linux.so.2"
  
  #define LINUX_TARGET_LINK_SPEC  "%{h*} \
     %{static:-Bstatic} \
@@ -68,7 +68,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/bfin/linux.h gcc-4.6.0/gcc/config/bfin/linu
    %{!shared: %{!static: \
     %{rdynamic:-export-dynamic} \
 -   -dynamic-linker /lib/ld-uClibc.so.0} \
-+   -dynamic-linker /tools/lib/ld-uClibc.so.0} \
++   -dynamic-linker /cross/tools/lib/ld-uClibc.so.0} \
     %{static}} -init __init -fini __fini"
  
  #define MD_UNWIND_SUPPORT "config/bfin/linux-unwind.h"
@@ -80,7 +80,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/cris/linux.h gcc-4.6.0/gcc/config/cris/linu
  #define CRIS_DEFAULT_CPU_VERSION CRIS_CPU_NG
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  
  #undef CRIS_LINK_SUBTARGET_SPEC
  #define CRIS_LINK_SUBTARGET_SPEC \
@@ -92,7 +92,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/freebsd-spec.h gcc-4.6.0/gcc/config/freebsd
  #define FBSD_DYNAMIC_LINKER "/usr/libexec/ld-elf.so.1"
  #else
 -#define FBSD_DYNAMIC_LINKER "/libexec/ld-elf.so.1"
-+#define FBSD_DYNAMIC_LINKER "/tools/libexec/ld-elf.so.1"
++#define FBSD_DYNAMIC_LINKER "/cross/tools/libexec/ld-elf.so.1"
  #endif
  
  #if defined(HAVE_LD_EH_FRAME_HDR)
@@ -104,7 +104,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/frv/linux.h gcc-4.6.0/gcc/config/frv/linux.
    "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  
  #undef LINK_SPEC
  #define LINK_SPEC "\
@@ -116,7 +116,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/i386/gnu.h gcc-4.6.0/gcc/config/i386/gnu.h
  
  #undef GLIBC_DYNAMIC_LINKER
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so"
  
  #undef TARGET_VERSION
  #define TARGET_VERSION fprintf (stderr, " (i386 GNU)");
@@ -128,7 +128,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/i386/linux.h gcc-4.6.0/gcc/config/i386/linu
  /* These macros may be overridden in k*bsd-gnu.h and i386/k*bsd-gnu.h. */
  #define LINK_EMULATION "elf_i386"
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-linux.so.2"
  
  #undef  ASM_SPEC
  #define ASM_SPEC \
@@ -141,8 +141,8 @@ diff -Naur gcc-4.6.0.orig/gcc/config/i386/linux64.h gcc-4.6.0/gcc/config/i386/li
  
 -#define GLIBC_DYNAMIC_LINKER32 "/lib/ld-linux.so.2"
 -#define GLIBC_DYNAMIC_LINKER64 "/lib64/ld-linux-x86-64.so.2"
-+#define GLIBC_DYNAMIC_LINKER32 "/tools/lib/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER64 "/tools/lib64/ld-linux-x86-64.so.2"
++#define GLIBC_DYNAMIC_LINKER32 "/cross/tools/lib/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER64 "/cross/tools/lib64/ld-linux-x86-64.so.2"
  
  #if TARGET_64BIT_DEFAULT
  #define SPEC_32 "m32"
@@ -154,7 +154,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/ia64/linux.h gcc-4.6.0/gcc/config/ia64/linu
     linux.h file.  */
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux-ia64.so.2"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld-linux-ia64.so.2"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-linux-ia64.so.2"
  
  #undef LINK_SPEC
  #define LINK_SPEC "\
@@ -166,7 +166,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/kfreebsd-gnu.h gcc-4.6.0/gcc/config/kfreebs
  #ifdef GLIBC_DYNAMIC_LINKER
  #undef GLIBC_DYNAMIC_LINKER
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  #endif
 diff -Naur gcc-4.6.0.orig/gcc/config/knetbsd-gnu.h gcc-4.6.0/gcc/config/knetbsd-gnu.h
 --- gcc-4.6.0.orig/gcc/config/knetbsd-gnu.h	2007-08-02 06:49:31.000000000 -0400
@@ -176,7 +176,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/knetbsd-gnu.h gcc-4.6.0/gcc/config/knetbsd-
  #ifdef GLIBC_DYNAMIC_LINKER
  #undef GLIBC_DYNAMIC_LINKER
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  #endif
 diff -Naur gcc-4.6.0.orig/gcc/config/kopensolaris-gnu.h gcc-4.6.0/gcc/config/kopensolaris-gnu.h
 --- gcc-4.6.0.orig/gcc/config/kopensolaris-gnu.h	2009-01-29 13:48:41.000000000 -0500
@@ -186,7 +186,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/kopensolaris-gnu.h gcc-4.6.0/gcc/config/kop
  #ifdef GLIBC_DYNAMIC_LINKER
  #undef GLIBC_DYNAMIC_LINKER
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  #endif
 diff -Naur gcc-4.6.0.orig/gcc/config/linux.h gcc-4.6.0/gcc/config/linux.h
 --- gcc-4.6.0.orig/gcc/config/linux.h	2011-01-12 09:29:14.000000000 -0500
@@ -198,9 +198,9 @@ diff -Naur gcc-4.6.0.orig/gcc/config/linux.h gcc-4.6.0/gcc/config/linux.h
 -#define UCLIBC_DYNAMIC_LINKER "/lib/ld-uClibc.so.0"
 -#define UCLIBC_DYNAMIC_LINKER32 "/lib/ld-uClibc.so.0"
 -#define UCLIBC_DYNAMIC_LINKER64 "/lib/ld64-uClibc.so.0"
-+#define UCLIBC_DYNAMIC_LINKER "/tools/lib/ld-uClibc.so.0"
-+#define UCLIBC_DYNAMIC_LINKER32 "/tools/lib/ld-uClibc.so.0"
-+#define UCLIBC_DYNAMIC_LINKER64 "/tools/lib/ld64-uClibc.so.0"
++#define UCLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-uClibc.so.0"
++#define UCLIBC_DYNAMIC_LINKER32 "/cross/tools/lib/ld-uClibc.so.0"
++#define UCLIBC_DYNAMIC_LINKER64 "/cross/tools/lib/ld64-uClibc.so.0"
  #define BIONIC_DYNAMIC_LINKER "/system/bin/linker"
  #define BIONIC_DYNAMIC_LINKER32 "/system/bin/linker"
  #define BIONIC_DYNAMIC_LINKER64 "/system/bin/linker64"
@@ -212,7 +212,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/lm32/uclinux-elf.h gcc-4.6.0/gcc/config/lm3
     %{symbolic:-Bsymbolic} \
     %{rdynamic:-export-dynamic} \
 -   -dynamic-linker /lib/ld-linux.so.2"
-+   -dynamic-linker /tools/lib/ld-linux.so.2"
++   -dynamic-linker /cross/tools/lib/ld-linux.so.2"
  
  #define TARGET_OS_CPP_BUILTINS() LINUX_TARGET_OS_CPP_BUILTINS()
  
@@ -224,7 +224,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/m32r/linux.h gcc-4.6.0/gcc/config/m32r/linu
     done.  */
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-linux.so.2"
  
  #undef	LINK_SPEC
  #if TARGET_LITTLE_ENDIAN
@@ -236,7 +236,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/m68k/linux.h gcc-4.6.0/gcc/config/m68k/linu
     done.  */
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  
  #undef LINK_SPEC
  #define LINK_SPEC "-m m68kelf %{shared} \
@@ -248,7 +248,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/microblaze/linux.h gcc-4.6.0/gcc/config/mic
  
  
 -#define DYNAMIC_LINKER "/lib/ld.so.1"
-+#define DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  #undef  SUBTARGET_EXTRA_SPECS
  #define SUBTARGET_EXTRA_SPECS \
    { "dynamic_linker", DYNAMIC_LINKER }
@@ -260,7 +260,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/mips/linux.h gcc-4.6.0/gcc/config/mips/linu
  #define MIPS_DEFAULT_GVALUE 0
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  
  /* Borrowed from sparc/linux.h */
  #undef LINK_SPEC
@@ -275,10 +275,10 @@ diff -Naur gcc-4.6.0.orig/gcc/config/mips/linux64.h gcc-4.6.0/gcc/config/mips/li
 -#define GLIBC_DYNAMIC_LINKER64 "/lib64/ld.so.1"
 -#define GLIBC_DYNAMIC_LINKERN32 "/lib32/ld.so.1"
 -#define UCLIBC_DYNAMIC_LINKERN32 "/lib32/ld-uClibc.so.0"
-+#define GLIBC_DYNAMIC_LINKER32 "/tools/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER64 "/tools/lib64/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKERN32 "/tools/lib32/ld.so.1"
-+#define UCLIBC_DYNAMIC_LINKERN32 "/tools/lib32/ld-uClibc.so.0"
++#define GLIBC_DYNAMIC_LINKER32 "/cross/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER64 "/cross/tools/lib64/ld.so.1"
++#define GLIBC_DYNAMIC_LINKERN32 "/cross/tools/lib32/ld.so.1"
++#define UCLIBC_DYNAMIC_LINKERN32 "/cross/tools/lib32/ld-uClibc.so.0"
  #define BIONIC_DYNAMIC_LINKERN32 "/system/bin/linker32"
  #define LINUX_DYNAMIC_LINKERN32 \
    CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKERN32, UCLIBC_DYNAMIC_LINKERN32, \
@@ -290,7 +290,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/mn10300/linux.h gcc-4.6.0/gcc/config/mn1030
  #define ASM_SPEC ""
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  
  #undef  LINK_SPEC
  #define LINK_SPEC "%{mrelax:--relax} %{shared:-shared} \
@@ -302,7 +302,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/pa/pa-linux.h gcc-4.6.0/gcc/config/pa/pa-li
     linux.h file.  */
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  
  #undef LINK_SPEC
  #define LINK_SPEC "\
@@ -317,10 +317,10 @@ diff -Naur gcc-4.6.0.orig/gcc/config/rs6000/linux64.h gcc-4.6.0/gcc/config/rs600
 -#define GLIBC_DYNAMIC_LINKER64 "/lib64/ld64.so.1"
 -#define UCLIBC_DYNAMIC_LINKER32 "/lib/ld-uClibc.so.0"
 -#define UCLIBC_DYNAMIC_LINKER64 "/lib/ld64-uClibc.so.0"
-+#define GLIBC_DYNAMIC_LINKER32 "/tools/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER64 "/tools/lib64/ld64.so.1"
-+#define UCLIBC_DYNAMIC_LINKER32 "/tools/lib/ld-uClibc.so.0"
-+#define UCLIBC_DYNAMIC_LINKER64 "/tools/lib/ld64-uClibc.so.0"
++#define GLIBC_DYNAMIC_LINKER32 "/cross/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER64 "/cross/tools/lib64/ld64.so.1"
++#define UCLIBC_DYNAMIC_LINKER32 "/cross/tools/lib/ld-uClibc.so.0"
++#define UCLIBC_DYNAMIC_LINKER64 "/cross/tools/lib/ld64-uClibc.so.0"
  #if DEFAULT_LIBC == LIBC_UCLIBC
  #define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:" G ";:" U "}"
  #elif DEFAULT_LIBC == LIBC_GLIBC
@@ -333,8 +333,8 @@ diff -Naur gcc-4.6.0.orig/gcc/config/rs6000/sysv4.h gcc-4.6.0/gcc/config/rs6000/
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
 -#define UCLIBC_DYNAMIC_LINKER "/lib/ld-uClibc.so.0"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
-+#define UCLIBC_DYNAMIC_LINKER "/tools/lib/ld-uClibc.so.0"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
++#define UCLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-uClibc.so.0"
  #if DEFAULT_LIBC == LIBC_UCLIBC
  #define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:" G ";:" U "}"
  #elif !defined (DEFAULT_LIBC) || DEFAULT_LIBC == LIBC_GLIBC
@@ -343,7 +343,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/rs6000/sysv4.h gcc-4.6.0/gcc/config/rs6000/
  #define LINK_OS_GNU_SPEC "-m elf32ppclinux %{!shared: %{!static: \
    %{rdynamic:-export-dynamic} \
 -  -dynamic-linker /lib/ld.so.1}}"
-+  -dynamic-linker /tools/lib/ld.so.1}}"
++  -dynamic-linker /cross/tools/lib/ld.so.1}}"
  
  #define CPP_OS_GNU_SPEC "-D__unix__ -D__gnu_hurd__ -D__GNU__	\
  %{!undef:					                \
@@ -356,8 +356,8 @@ diff -Naur gcc-4.6.0.orig/gcc/config/s390/linux.h gcc-4.6.0/gcc/config/s390/linu
  
 -#define GLIBC_DYNAMIC_LINKER32 "/lib/ld.so.1"
 -#define GLIBC_DYNAMIC_LINKER64 "/lib/ld64.so.1"
-+#define GLIBC_DYNAMIC_LINKER32 "/tools/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER64 "/tools/lib/ld64.so.1"
++#define GLIBC_DYNAMIC_LINKER32 "/cross/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER64 "/cross/tools/lib/ld64.so.1"
  
  #undef  LINK_SPEC
  #define LINK_SPEC \
@@ -369,7 +369,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/sh/linux.h gcc-4.6.0/gcc/config/sh/linux.h
  #define TARGET_ASM_FILE_END file_end_indicate_exec_stack
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-linux.so.2"
  
  #undef SUBTARGET_LINK_EMUL_SUFFIX
  #define SUBTARGET_LINK_EMUL_SUFFIX "_linux"
@@ -381,11 +381,11 @@ diff -Naur gcc-4.6.0.orig/gcc/config/sparc/linux.h gcc-4.6.0/gcc/config/sparc/li
     done.  */
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld-linux.so.2"
  
  #undef  LINK_SPEC
 -#define LINK_SPEC "-m elf32_sparc -Y P,/usr/lib %{shared:-shared} \
-+#define LINK_SPEC "-m elf32_sparc -Y P,/tools/lib %{shared:-shared} \
++#define LINK_SPEC "-m elf32_sparc -Y P,/cross/tools/lib %{shared:-shared} \
    %{!mno-relax:%{!r:-relax}} \
    %{!shared: \
      %{!static: \
@@ -398,8 +398,8 @@ diff -Naur gcc-4.6.0.orig/gcc/config/sparc/linux64.h gcc-4.6.0/gcc/config/sparc/
  
 -#define GLIBC_DYNAMIC_LINKER32 "/lib/ld-linux.so.2"
 -#define GLIBC_DYNAMIC_LINKER64 "/lib64/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER32 "/tools/lib/ld-linux.so.2"
-+#define GLIBC_DYNAMIC_LINKER64 "/tools/lib64/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER32 "/cross/tools/lib/ld-linux.so.2"
++#define GLIBC_DYNAMIC_LINKER64 "/cross/tools/lib64/ld-linux.so.2"
  
  #ifdef SPARC_BI_ARCH
  
@@ -408,7 +408,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/sparc/linux64.h gcc-4.6.0/gcc/config/sparc/
    { "link_arch",	 LINK_ARCH_SPEC },
  
 -#define LINK_ARCH32_SPEC "-m elf32_sparc -Y P,%R/usr/lib %{shared:-shared} \
-+#define LINK_ARCH32_SPEC "-m elf32_sparc -Y P,%R/tools/lib %{shared:-shared} \
++#define LINK_ARCH32_SPEC "-m elf32_sparc -Y P,%R/cross/tools/lib %{shared:-shared} \
    %{!shared: \
      %{!static: \
        %{rdynamic:-export-dynamic} \
@@ -417,7 +417,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/sparc/linux64.h gcc-4.6.0/gcc/config/sparc/
  "
  
 -#define LINK_ARCH64_SPEC "-m elf64_sparc -Y P,%R/usr/lib64 %{shared:-shared} \
-+#define LINK_ARCH64_SPEC "-m elf64_sparc -Y P,%R/tools/lib64 %{shared:-shared} \
++#define LINK_ARCH64_SPEC "-m elf64_sparc -Y P,%R/cross/tools/lib64 %{shared:-shared} \
    %{!shared: \
      %{!static: \
        %{rdynamic:-export-dynamic} \
@@ -426,7 +426,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/sparc/linux64.h gcc-4.6.0/gcc/config/sparc/
  
  #undef LINK_SPEC
 -#define LINK_SPEC "-m elf64_sparc -Y P,%R/usr/lib64 %{shared:-shared} \
-+#define LINK_SPEC "-m elf64_sparc -Y P,%R/tools/lib64 %{shared:-shared} \
++#define LINK_SPEC "-m elf64_sparc -Y P,%R/cross/tools/lib64 %{shared:-shared} \
    %{!shared: \
      %{!static: \
        %{rdynamic:-export-dynamic} \
@@ -438,7 +438,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/vax/linux.h gcc-4.6.0/gcc/config/vax/linux.
      %{!static: \
        %{rdynamic:-export-dynamic} \
 -      -dynamic-linker /lib/ld.so.1} \
-+      -dynamic-linker /tools/lib/ld.so.1} \
++      -dynamic-linker /cross/tools/lib/ld.so.1} \
      %{static:-static}}"
  
  #undef  WCHAR_TYPE
@@ -450,7 +450,7 @@ diff -Naur gcc-4.6.0.orig/gcc/config/xtensa/linux.h gcc-4.6.0/gcc/config/xtensa/
    %{mno-longcalls:--no-longcalls}"
  
 -#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
-+#define GLIBC_DYNAMIC_LINKER "/tools/lib/ld.so.1"
++#define GLIBC_DYNAMIC_LINKER "/cross/tools/lib/ld.so.1"
  
  #undef LINK_SPEC
  #define LINK_SPEC \

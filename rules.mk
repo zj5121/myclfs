@@ -25,7 +25,7 @@ UNTAR.gz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar zxf
 UNTAR.xz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar Jxf 
 
 define UNTARCMD
-@($(UNTAR$(suffix $<)) $< -C $(SRC) && touch $@ && $(call echo_cmd,, done))
+@(mkdir -p $(SRC) && $(UNTAR$(suffix $<)) $< -C $(SRC) && touch $@ && $(call echo_cmd,, done))
 endef
 
 PATCH_ = $(call echo_cmd,-n,$(INFO_PATCH_SRC) $(notdir $<) ...); patch -d $(dir $@) -i $< -p1 2>&1 >/dev/null
@@ -48,7 +48,8 @@ $$($(1)$(if $(4),-$(4),)_untared): $$($(1)$(if $(4),-$(4),)_tar)
 	$(value UNTARCMD)
 
 $(1)_src := $$($(1)_src) $$($(1)$(if $(4),-$(4),)_untared)
-#$$(warning $$($(1)_src))
+$$(if $$($(1)_src_dir),,$$(eval $(1)_src_dir := $(SRC)/$(1)-$(2)))
+#$$(warning $(1)_src_dir = $$($(1)_src_dir))
 #UNTAR_TGTS = $(SRC)/.$(notdir $(1)) $(UNTAR_TGTS)
 endef
 
