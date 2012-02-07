@@ -11,7 +11,7 @@ MPC_VER := 0.9
 PPL_VER := 0.11.2
 CLOOG_VER := 0.15.11
 BINTUILS_VER := 2.22
-
+LIBELF_VER := 0.8.9
 GCC_PATCHES := 
 #cross_compile-1 specs-1 startfiles_fix-1
 MPFR_PATCHES := fixes-1

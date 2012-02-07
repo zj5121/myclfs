@@ -9,7 +9,6 @@ all: build
 
 include packages.mk
 
-
 $(eval $(call prepare_source,linux,$(LINUX_VER),tar.bz2))
 linux_dest := $(CLFS_FINAL)/include/.linux_hdr
 $(linux_dest): $(linux_src) 
@@ -17,107 +16,157 @@ $(linux_dest): $(linux_src)
 	@(cd $(dir $<) && \
 		$(MAKE) mrproper && \
 		$(MAKE) ARCH=$(TARGET_ARCH) headers_check && \
-		$(MAKE) ARCH=$(TARGET_ARCH) INSTALL_HDR_PATH=dest headers_install && \
+		$(MAKE) ARCH=$(TARGET_ARCH) CROSS_COMPILE=$(CLFS_)/bin/$(TARGET)- INSTALL_HDR_PATH=dest headers_install && \
 		cp -rv dest/include/* $(dir $(linux_dest)) && \
 		touch $@; \
 	)
 
+
+# gmp lib
 $(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
-gmp_dest := $(CLFS_TEMP)/lib/libgmpxx.a
+gmp_dest := $(TOOLCHAIN_HOST)/usr/lib/libgmpxx.a
 gmp_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp_dest): $(gmp_src) 
-	@(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
+	(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
 	source $(curdir)/env.sh && \
 	cd $(gmp_bld) && \
-	CPPFLAGS="-fexceptions" $(dir $(gmp_src))/configure \
-	--prefix=$(call parent,$(call parent,$@)) --enable-cxx && \
-	$(MAKE) && $(MAKE) install \
+	CPPFLAGS="-fexceptions" $(gmp_src_dir)/configure \
+	--prefix=$(TOOLCHAIN_HOST)/usr \
+	--build=$(BUILD) \
+	--host=$(BUILD) \
+	--target=$(BUILD) \
+	--enable-cxx && \
+	$(MAKE) && $(MAKE) install && $(MAKE) check \
 	)
 
+# mpfr lib
 $(eval $(call prepare_source,mpfr,$(MPFR_VER),tar.bz2))
 $(eval $(call patch_source,MPFR_PATCHES,mpfr,3.1.0))
-mpfr_dest := $(CLFS_TEMP)/lib/libmpfr.so
+mpfr_dest := $(TOOLCHAIN_HOST)/usr/lib/libmpfr.so
 mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
 $(mpfr_dest): $(mpfr_patched) $(gmp_dest)
 	@(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
 	source $(curdir)/env.sh && \
 	cd $(mpfr_bld) && \
-	CPPFLAGS="-I$(CLFS_TEMP)/include" \
-	CFLAGS="-I$(CFLAGS)/include" \
-	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-	$(dir $(mpfr_src))/configure --prefix=$(CLFS_TEMP) --enable-shared --with-gmp=$(CLFS_TEMP) && \
-	$(MAKE) && $(MAKE) install)
+	CPPFLAGS="-I$(TOOLCHAIN_HOST)/usr/include" \
+	CFLAGS="-I$(TOOLCHAIN_HOST)/usr/include" \
+	LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/usr/lib" \
+	$(mpfr_src_dir)/configure --prefix=$(TOOLCHAIN_HOST)/usr \
+	--enable-shared \
+	--with-gmp=$(TOOLCHAIN_HOST)/usr \
+	--target=$(TARGET) \
+	--build=$(BUILD) \
+	--host=$(BUILD) && \
+	$(MAKE) && $(MAKE) install && $(MAKE) check)
 
-
+# mpc lib
 $(eval $(call prepare_source,mpc,$(MPC_VER),tar.gz))
-mpc_dest := $(CLFS_TEMP)/lib/libmpc.so
+mpc_dest := $(TOOLCHAIN_HOST)/usr/lib/libmpc.so
 mpc_bld := $(BLD)/mpc-$(MPC_VER)
 $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
 	@(rm -fr $(mpc_bld) && mkdir -p $(mpc_bld) &&\
 	source $(curdir)/env.sh && \
 	cd $(mpc_bld) &&\
-	CPPFLAGS="-I$(CLFS_TEMP)/include" \
-	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-	$(dir $(mpc_src))/configure --prefix=$(CLFS_TEMP) --with-gmp=$(CLFS_TEMP) --with-mpfr=$(CLFS_TEMP) &&\
-	$(MAKE) && $(MAKE) install)
+	CPPFLAGS="-I$(TOOLCHAIN_HOST)/usr/include" \
+	LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/usr/lib" \
+	$(mpc_src_dir)/configure --prefix=$(TOOLCHAIN_HOST)/usr \
+	--build=$(BUILD) \
+	--target=$(TARGET) \
+	--disable-nls \
+	--with-gmp=$(TOOLCHAIN_HOST)/usr \
+	--with-mpfr=$(TOOLCHAIN_HOST)/usr &&\
+	$(MAKE) && $(MAKE) install && $(MAKE) check)
+
 
 $(eval $(call prepare_source,ppl,$(PPL_VER),tar.bz2))
-ppl_dest := $(CLFS_TEMP)/lib/libppl.so
+ppl_dest := $(TOOLCHAIN_HOST)/usr/lib/libppl.so
 ppl_bld := $(BLD)/ppl-$(PPL_VER)
 $(ppl_dest): $(ppl_src) $(mpc_dest)
 	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(ppl_bld)))
 	@(rm -fr $(ppl_bld) && mkdir -p $(ppl_bld) &&\
 	source $(curdir)/env.sh && \
 	cd $(ppl_bld) && \
-	CFLAGS="-I$(CLFS_TEMP)/include" CPPFLAGS="-I$(CLFS_TEMP)/include" \
-	LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-	$(dir $(ppl_src))/configure --prefix=$(CLFS_TEMP) --enable-shared \
-	--enable-interfaces="c,cxx" --disable-optimization \
-	--with-libgmp-prefix=$(CLFS_TEMP) \
-	--with-libgmpxx-prefix=$(CLFS_TEMP) && \
+	CFLAGS="-I$(TOOLCHAIN_HOST)/include" CPPFLAGS="-I$(TOOLCHAIN_HOST)/usr/include" \
+	LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/usr/lib" \
+	$(ppl_src_dir)/configure --prefix=$(TOOLCHAIN_HOST)/usr \
+	--build=$(BUILD) \
+	--target=$(TARGET) \
+	--enable-interfaces="c,cxx" \
+	--disable-watchdog \
+	--with-libgmp-prefix=$(TOOLCHAIN_HOST)/usr \
+	--with-libgmpxx-prefix=$(TOOLCHAIN_HOST)/usr && \
 	$(MAKE) && $(MAKE) install)
 
 
+
 $(eval $(call prepare_source,cloog-ppl,$(CLOOG_VER),tar.gz))
-cloog_dest := $(CLFS_TEMP)/lib/libcloog.so
+cloog_dest := $(TOOLCHAIN_HOST)/usr/lib/libcloog.so
 cloog_bld := $(BLD)/cloog-ppl-$(CLOOG_VER)
 $(cloog_dest): $(cloog-ppl_src) $(gmp_dest) $(ppl_dest)
 	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(cloog_bld))))
 	@(rm -fr $(cloog_bld) && mkdir -p $(cloog_bld) &&\
 	source $(curdir)/env.sh && \
-	cd $(dir $(cloog-ppl_src)) && \
+	cd $(cloog-ppl_src_dir) && \
 	cp -v configure{,.orig} && \
 	sed -e "/LD_LIBRARY_PATH=/d" configure.orig > configure && \
-	cd $(cloog_bld) && LDFLAGS="-Wl,-rpath=$(CLFS_TEMP)/lib" \
-	$(dir $(cloog-ppl_src))/configure --prefix=$(CLFS_TEMP) --enable-shared --with-bits=gmp \
-	--with-gmp=$(CLFS_TEMP) --with-ppl=$(CLFS_TEMP) && \
+	cd $(cloog_bld) && LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/usr/lib" \
+	$(cloog-ppl_src_dir)/configure --prefix=$(TOOLCHAIN_HOST)/usr \
+	--build=$(BUILD) \
+	--target=$(TARGET) \
+	--disable-shared \
+	--disable-nls \
+	--with-bits=gmp \
+	--with-gmp=$(TOOLCHAIN_HOST)/usr --with-ppl=$(TOOLCHAIN_HOST)/usr && \
+	$(MAKE) && $(MAKE) install && $(MAKE) check)
+
+# libelf
+$(eval $(call prepare_source,libelf,$(LIBELF_VER),tar.gz))
+libelf_dest := $(TOOLCHAIN_HOST)/usr/lib/libelf.so
+libelf_bld := $(BLD)/libelf-$(LIBELF_VER)
+$(libelf_dest): $(libelf_src)
+	@(rm -fr $(libelf_bld) && mkdir -p $(libelf_bld) && \
+	source $(curdir)/env.sh && \
+	cd $(libelf_bld) && \
+	$(libelf_src_dir)/configure --prefix=$(TOOLCHAIN_HOST)/usr \
+	--build=$(BUILD) \
+	--target=$(TARGET) \
+	--host=$(BUILD) \
+	--disable-nls \
+	--disable-shared && \
 	$(MAKE) && $(MAKE) install)
 
+	
 # bintuils pass1
 $(eval $(call prepare_source,binutils,2.22,tar.bz2))
-binutils_dest := $(CLFS_TEMP)/bin/$(TARGET)-ar
+binutils_dest := $(TOOLCHAIN)/bin/$(TARGET)-ar
 binutils_bld := $(BLD)/binutils-$(BINUTILS_VER)
 $(binutils_dest): $(binutils_src) $(cloog_dest) $(linux_dest)
 	@(rm -fr $(binutils_bld) && mkdir -p $(binutils_bld) && \
 	source $(curdir)/env.sh && \
 	cd $(binutils_bld) && \
-	AR=ar AS=as $(dir $(binutils_src))/configure \
-	--prefix=$(CLFS_TEMP) --host=$(HOST) --target=$(TARGET) \
-	--with-sysroot=$(CLFS) --with-lib-path=$(CLFS_FINAL)/lib \
+	$(binutils_src_dir)/configure \
+	--prefix=$(TOOLCHAIN)  \
+	--build=$(HOST)  \
+	--host=$(HOST) \
+	--target=$(TARGET) \
+	--with-sysroot=$(SYSROOT) \
+	--enable-poison-system-directories \
 	--disable-nls --enable-shared \
 	--disable-multilib && \
-	$(MAKE) configure-host && \
+	$(MAKE) all-libiberty && \
+	cp -fr $(binutils_src_dir)/include $(TOOLCHAIN_HOST)/usr/include
 	$(MAKE) && $(MAKE) install && \
 	mkdir -p $(CLFS_FINAL)/include && \
 	cp -v $(dir $(binutils_src))/include/libiberty.h $(CLFS_FINAL)/include)
 
+	#AR=ar AS=as LDFLAGS=-L$(TOOLCHAIN_HOST)/usr/lib CPPFLAGS=-I$(TOOLCHAIN_HOST)/usr/include \
 # gcc-4.6 pass1
 $(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,core))
 $(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,g++))
 $(call patch_source,GCC_PATCHES,gcc,$(GCC_VER))
 gcc_dest := $(CLFS_TEMP)/bin/$(TARGET)-gcc
 gcc_bld := $(BLD)/gcc-$(GCC_VER)
-$(gcc_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest) 
+$(gcc_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
 	(echo -en '#undef STANDARD_INCLUDE_DIR\n#define STANDARD_INCLUDE_DIR "$(CLFS_FINAL)/include/"\n\n' >> $(gcc_src_dir)/gcc/config/linux.h && \
 	echo -en '\n#undef STANDARD_STARTFILE_PREFIX_1\n#define STANDARD_STARTFILE_PREFIX_1 "$(CLFS_FINAL)/lib/"\n' >> $(gcc_src_dir)/gcc/config/linux.h && \
 	echo -en '\n#undef STANDARD_STARTFILE_PREFIX_2\n#define STANDARD_STARTFILE_PREFIX_2 ""\n' >> $(gcc_src_dir)/gcc/config/linux.h) && \
@@ -133,22 +182,19 @@ $(gcc_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
   	$(gcc_src_dir)/configure --prefix=$(CLFS_TEMP) \
 	  --build=$(HOST) --host=$(HOST) --target=$(TARGET) \
 	  --with-sysroot=$(CLFS) --with-local-prefix=$(CLFS_FINAL) --disable-nls \
-	  --disable-shared --with-mpfr=$(CLFS_TEMP) --with-gmp=$(CLFS_TEMP) \
+	  --enable-shared --with-mpfr=$(CLFS_TEMP) --with-gmp=$(CLFS_TEMP) \
 	  --with-ppl=$(CLFS_TEMP) --with-cloog=$(CLFS_TEMP) \
 	  --without-headers --with-newlib --disable-decimal-float \
 	  --disable-libgomp --disable-libmudflap --disable-libssp \
 	  --disable-threads --enable-languages=c --disable-multilib \
+	  --enable-targets=all --with-gnu-as --with-gnu-ld --enable-lto \
+	  --enable-poison-system-directories --with-build-time-tools=$(CLFS_TEMP)/bin && \
+	  --with-build-sysroot=$(CLFS_TEMP) '--withhost-libstdcxx=-staic-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm'
 	  --with-arch=$(TARGET_ARCH) &&\
-	$(MAKE) all-gcc && $(MAKE) install-gcc 
-	#all-target-libgcc && $(MAKE) install-gcc install-target-libgcc
+	$(MAKE) LDFLAGS_FOR_TARGET=--sysroot=$(CLFS) CPPFLAGS_FOR_TARGET=$(CLFS) build_tooldir=$(CLFS_TEMP) all-gcc && $(MAKE) install-gcc 
 
-libgcc_dest := $(CLFS_TEMP)/lib/gcc/libgcc.a
-libgcc_bld := $(BLD)/gcc-$(GCC_VER)
-$(libgcc_dest) : $(gcc_dest)
-	@(source $(curdir)/env.sh && cd $(gcc_bld) &&
-	$(MAKE) all-target-libgcc && $(MAKE install-target-libgcc))
 
-build: $(gcc_dest)
+#build: $(gcc_dest)
 
 prep_patch: prep_src
 	@(if [ ! -e $(SRC)/.src_patched ] ; then \
