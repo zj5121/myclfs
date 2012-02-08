@@ -6,7 +6,7 @@ NOCOLOR := \033[0m
 
 ifneq ($(VERBOSE),true)
 ifeq ($(COLOR_TTY),true)
-echo_prog := $(shell if echo -e | grep -q -- -e; then echo echo ; else echo echo -e ; fi)
+echo_prog := $(shell if echo -e | grep -q -- -e; then echo @echo ; else echo @echo -e ; fi)
 echo_cmd = $(echo_prog) $(1) "$(COLOR)$(2)$(NOCOLOR)"
 else
 echo_cmd = @echo "$(1)";
@@ -73,3 +73,27 @@ endef
 # $3 = version
 patch_source = $(foreach p,$($(1)),$(eval $(call patch_source_,$(2),$(3),$(p),$($(1)_src))))
 
+# $1 src dir
+# $2 dest dir
+define copy_dir_clean 
+mkdir -p "$2" && (cd "$1" && tar cf - \
+	--exclude=CVS --exclude=.svn --exclude=.git --exclude=.pc \
+	--exclude="*~" --exclude=".#*" \
+	--exclude="*.orig" --exclude="*.rej" \
+	.) | (cd "$2" && tar xf -) 
+endef
+
+define MK_ENV1
+export BASE=/cross ; \
+export PREFIX=/opt/x-tools ; \
+export SYSROOT=$(PREFIX)/$(TARGET)/sysroot ; \
+export PATH=$(TOOCHAIN_INSTALL)/bin:/bin:/usr/bin 
+endef
+
+define MK_ENV2
+export PATH=$(TOOCHAIN_INSTALL)/bin:/bin:/usr/bin ; \
+export AR_FOR_TARGET=$(TARGET)-ar ; \
+export NM_FOR_TARGET=$(TARGET)-nm ; \
+export OBJDUMP_FOR_TARGET=$(TARGET)-objdump ; \
+export STRIP_FOR_TARGET=$(HOST_ARCH)-strip 
+endef
