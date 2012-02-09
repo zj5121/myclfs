@@ -6,7 +6,7 @@ NOCOLOR := \033[0m
 
 ifneq ($(VERBOSE),true)
 ifeq ($(COLOR_TTY),true)
-echo_prog := $(shell if echo -e | grep -q -- -e; then echo @echo ; else echo @echo -e ; fi)
+echo_prog := $(shell if echo -e | grep -q -- -e; then echo echo ; else echo echo -e ; fi)
 echo_cmd = $(echo_prog) $(1) "$(COLOR)$(2)$(NOCOLOR)"
 else
 echo_cmd = @echo "$(1)";
@@ -87,13 +87,13 @@ define MK_ENV1
 export BASE=/cross ; \
 export PREFIX=/opt/x-tools ; \
 export SYSROOT=$(PREFIX)/$(TARGET)/sysroot ; \
-export PATH=$(TOOCHAIN_INSTALL)/bin:/bin:/usr/bin 
+export PATH=$(TOOLCHAIN_INSTALL)/bin:/bin:/usr/bin 
 endef
 
 define MK_ENV2
-export PATH=$(TOOCHAIN_INSTALL)/bin:/bin:/usr/bin ; \
+export PATH=$(TOOLCHAIN_INSTALL)/bin:/bin:/usr/bin ; \
 export AR_FOR_TARGET=$(TARGET)-ar ; \
 export NM_FOR_TARGET=$(TARGET)-nm ; \
 export OBJDUMP_FOR_TARGET=$(TARGET)-objdump ; \
-export STRIP_FOR_TARGET=$(HOST_ARCH)-strip 
+export STRIP_FOR_TARGET=$(TARGET)-strip 
 endef

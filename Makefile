@@ -12,7 +12,7 @@ include packages.mk
 
 # gmp lib
 $(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
-gmp_dest := $(TOOLCHAIN_HOST)/lib/libgmpxx.a
+gmp_dest := $(TOOLCHAIN_HOST)/lib/libgmpxx.so
 gmp_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp_dest): $(gmp_src) 
 	(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
@@ -20,9 +20,7 @@ $(gmp_dest): $(gmp_src)
 	cd $(gmp_bld) && \
 	CPPFLAGS="-fexceptions" $(gmp_src_dir)/configure \
 	--prefix=$(TOOLCHAIN_HOST) \
-	--build=$(BUILD) \
-	--host=$(BUILD) \
-	--target=$(BUILD) \
+	--enable-shared \
 	--enable-cxx && \
 	$(MAKE) && $(MAKE) install && $(MAKE) check \
 	)
@@ -30,7 +28,7 @@ $(gmp_dest): $(gmp_src)
 # mpfr lib
 $(eval $(call prepare_source,mpfr,$(MPFR_VER),tar.bz2))
 $(eval $(call patch_source,MPFR_PATCHES,mpfr,3.1.0))
-mpfr_dest := $(TOOLCHAIN_HOST)/lib/libmpfr.so
+mpfr_dest := $(TOOLCHAIN_HOST)/lib/libmpfr.a
 mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
 $(mpfr_dest): $(mpfr_patched) $(gmp_dest)
 	@(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
@@ -40,11 +38,8 @@ $(mpfr_dest): $(mpfr_patched) $(gmp_dest)
 	CFLAGS="-I$(TOOLCHAIN_HOST)/include" \
 	LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/lib" \
 	$(mpfr_src_dir)/configure --prefix=$(TOOLCHAIN_HOST) \
-	--enable-shared \
-	--with-gmp=$(TOOLCHAIN_HOST) \
-	--target=$(TARGET) \
-	--build=$(BUILD) \
-	--host=$(BUILD) && \
+	--disable-shared \
+	--with-gmp=$(TOOLCHAIN_HOST) &&\
 	$(MAKE) && $(MAKE) install && $(MAKE) check)
 
 # mpc lib
@@ -59,8 +54,8 @@ $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
 	CPPFLAGS="-I$(TOOLCHAIN_HOST)/include" \
 	LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/lib" \
 	$(mpc_src_dir)/configure --prefix=$(TOOLCHAIN_HOST) \
-	--build=$(BUILD) \
 	--target=$(TARGET) \
+	--disable-shared \
 	--with-gmp=$(TOOLCHAIN_HOST) \
 	--with-mpfr=$(TOOLCHAIN_HOST) &&\
 	$(MAKE) && $(MAKE) install && $(MAKE) check)
@@ -115,7 +110,7 @@ libelf_bld := $(BLD)/libelf-$(LIBELF_VER)
 $(libelf_dest): $(libelf_src)
 	@($(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(cloog_bld)))))
 	@(rm -fr $(libelf_bld) && mkdir -p $(libelf_bld) && \
-	source $(curdir)/env.sh && $(call MK_ENV) \
+	source $(curdir)/env.sh && $(call MK_ENV1) \
 	cd $(libelf_bld) && \
 	$(libelf_src_dir)/configure --prefix=$(TOOLCHAIN_HOST) \
 	--build=$(BUILD) \
@@ -131,9 +126,9 @@ $(eval $(call prepare_source,binutils,2.22,tar.bz2))
 binutils_dest := $(TOOLCHAIN_INSTALL)/bin/$(TARGET)-ar
 binutils_bld := $(BLD)/binutils-$(BINUTILS_VER)
 $(binutils_dest): $(binutils_src) $(cloog_dest) $(libelf_dset)
-	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(binutils_bld))))
+	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(binutils_bld)))
 	(rm -fr $(binutils_bld) && mkdir -p $(binutils_bld) && \
-	source $(curdir)/env.sh ; $(call MK_ENV1) \
+	source $(curdir)/env.sh ; $(call MK_ENV1) ;\
 	cd $(binutils_bld) && \
 	$(call copy_dir_clean,$(binutils_src_dir),$(binutils_bld)) && \
 	$(binutils_bld)/configure \
@@ -185,6 +180,23 @@ $(linux_dest): $(linux_src)
 	mkdir -p $(SYSROOT)/{atom,core2}
 	)
 
+# install glibc header
+$(eval $(call prepare_source,glibc,2.14.1,tar.xz))
+glibc_hdr_dest := $(SYSROOT)/usr/include/.glibc_hdr
+glibc_hdr_bld := $(BLD)/glibc-$(GLIBC_VER)
+$(glibc_hdr_dest) : $(glibc_src)
+	(rm -fr $(glibc_hdr_bld) && mkdir -p $(glibc_hdr_bld) && \
+	cd $(glibc_hdr_bld) && \
+	$(glibc_src_dir)/configure \
+		--host=$(TARGET) \
+		--prefix=/opt/x-tools \
+		--with-headers=$(SYSROOT)/usr/include \
+		--disable-sanity-checks && \
+		$(MAKE) -k install-headers install_root=$(SYSROOT) && \
+		mkdir -p $(SYSROOT)/usr/include/gnu && \
+		touch $(SYSROOT)/usr/include/gnu/stubs.h && \
+		cp -f bits/stdio_lim.h $(SYSROOT)/usr/include/bits/ && \
+		ln -s usr/include $(SYSROOT)/sys-include)
 
 # gcc-4.6 pass1
 $(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,core))
@@ -193,27 +205,32 @@ $(call patch_source,GCC_PATCHES,gcc,$(GCC_VER))
 gcc1_dest := $(TOOLCHAIN_INSTALL)/bin/$(TARGET)-gcc
 gcc1_bld := $(BLD)/gcc-$(GCC_VER)
 $(gcc1_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
-	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(cloog_bld))))
+	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(gcc1_dest))))
 	(source $(curdir)/env.sh ; $(call MK_ENV1) ; $(call MK_ENV2); \
 	rm -rf $(gcc1_bld) && \
 	mkdir -p $(gcc1_bld) && cd $(gcc1_bld) && \
 	$(gcc_src_dir)/configure \
+	--target=i686-pc-linux-gnu \
 	--build=$(BUILD) \
 	--host=$(BUILD) \
-	--target=$(TARGET) \
+	--enable-threads \
 	--disable-libmudflap \
 	--disable-libssp \
 	--disable-libstdcxx-pch \
 	--enable-targets=all \
-	--enable-extra-sgxxlite-multilibs \
-	--with-arch-32=pentium4 --with-arch-64=nocona \
+	--disable-multilib \
+	--with-arch-32=pentium4 \
 	--with-cpu=generic \
-	--with-gnu-as --with-gnu-ld \
+	--with-gnu-as \
+	--with-gnu-ld \
+	--enable-languages=c,c++ \
+	--disable-shared\
 	--enable-lto \
 	--enable-symvers=gnu \
-	--enable-__cxa_atexit  \
+	--enable-__cxa_atexit \
+	'--with-pkgversion=Sourcery CodeBench Lite 2011.09-24' \
 	--disable-nls \
-	--prefix=$(TOOLCHAIN_INSTALL) \
+	--prefix=$(PREFIX) \
 	--disable-shared \
 	--disable-threads \
 	--disable-libssp \
@@ -227,20 +244,20 @@ $(gcc1_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
 	--with-sysroot=$(SYSROOT) \
 	--with-build-sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
 	--with-gmp=$(TOOLCHAIN_HOST) \
-	--with-mpfr=$(TOOLCHAIN_HOST) \
 	--with-mpc=$(TOOLCHAIN_HOST) \
+	--with-mpfr=$(TOOLCHAIN_HOST) \
 	--with-ppl=$(TOOLCHAIN_HOST) \
-	'--with-host-libstdcxx=-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm' \
-	--with-cloog=$(TOOLCHAIN_HOST) --with-libelf=$(TOOLCHAIN_HOST) \
+	--with-cloog=$(TOOLCHAIN_HOST) \
+	--with-libelf=$(TOOLCHAIN_HOST) \
 	--disable-libgomp \
 	--enable-poison-system-directories \
-	--with-build-time-tools=$(TOOLCHAIN_INSTALL)/bin \
-	--with-build-time-tools=$(TOOLCHAIN_INSTALL)/bin && \
+	--with-build-time-tools=$(TOOLCHAIN_INSTALL)/bin  && \
 	$(MAKE) LDFLAGS_FOR_TARGET=--sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
+			LDFLAGS_FOR_BUILD=-Wl,-rpath=$(TOOLCHAIN_HOST) \
 			CPPFLAGS_FOR_TARGET=--sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
 			build_tooldir=$(TOOLCHAIN_INSTALL)/$(TARGET) )
-
-
+#--with-arch-64=nocona \
+#'--with-host-libstdcxx=-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm' 
 build: $(gcc1_dest)
 
 prep_patch: prep_src

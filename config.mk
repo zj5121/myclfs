@@ -9,13 +9,12 @@ BASE := /cross
 TOOLCHAIN_HOST:= $(BASE)/host/usr
 TOOLCHAIN_INSTALL := $(BASE)/$(TARGET)/install
 TOOLCHAIN_INSTALL_SYSROOT := $(TOOLCHAIN_INSTALL)/$(TARGET)/sysroot
-PREFIX := /opt/x-tools
-SYSROOT := $(PREFIX)/$(TARGET)/sysroot
+PREFIX := /cross/sysroot
+SYSROOT := $(PREFIX)/$(TARGET)
 
 PATH := $(TOOCHAIN_HOST)/bin:/bin:/usr/bin
 
 BUILD := $(shell gcc -dumpmachine)
-#HOST := $(shell echo $(BUILD) | sed "s/-[^-]*/-cross/")
 
 ROOT := $(shell pwd)
 BLD := $(ROOT)/bld
