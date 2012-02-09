@@ -137,31 +137,13 @@ $(binutils_dest): $(binutils_src) $(cloog_dest) $(libelf_dset)
 	--host=$(BUILD) \
 	--target=$(TARGET) \
 	--with-sysroot=$(SYSROOT) \
-	--enable-poison-system-directories \
 	--disable-nls --enable-shared \
 	--disable-multilib && \
-	$(MAKE) all-libiberty && \
-	$(call copy_dir_clean,$(binutils_src_dir)/include,$(binutils_bld)/usr/include) && \
 	mkdir -p $(binutils_bld)/usr/lib && \
-	cp -f $(binutils_bld)/libiberty/libiberty.a $(binutils_bld)/usr/lib &&\
-	CPPFLAGS=-I$(binutils_bld)/usr/include LDFLAGS=-L$(binutils_bld)/usr/lib \
-	$(MAKE) && \
-	CPPFLAGS=-I$(binutils_bld)/usr/include LDFLAGS=-L$(binutils_bld)/usr/lib \
-	$(MAKE) install prefix=$(TOOLCHAIN_INSTALL) exec_prefix=$(TOOLCHAIN_INSTALL) libdir=$(TOOLCHAIN_INSTALL)/lib datadir=$(TOOLCHAIN_INSTALL)/share&& \
-	rm -fr $(TOOLCHAIN_INSTALL)/lib* && \
-	CPPFLAGS=-I$(binutils_bld)/usr/include LDFLAGS=-L$(binutils_bld)/usr/lib \
-	$(MAKE) install prefix=$(TOOLCHAIN_INSTALL) exec_prefix=$(TOOLCHAIN_INSTALL) libdir=$(TOOLCHAIN_INSTALL)/lib datadir=$(TOOLCHAIN_INSTALL)/share&& \
-	CPPFLAGS=-I$(binutils_bld)/usr/include LDFLAGS=-L$(binutils_bld)/usr/lib \
-	$(MAKE) install prefix=$(TOOLCHAIN_INSTALL) exec_prefix=$(TOOLCHAIN_INSTALL) libdir=$(TOOLCHAIN_INSTALL)/lib datadir=$(TOOLCHAIN_INSTALL)/share&& \
-	cp $(binutils_bld)/bfd/.libs/libbfd.a $(binutils_bld)/usr/lib && \
-	cp $(binutils_bld)/bfd/bfd.h $(binutils_bld)/usr/include &&\
-	cp $(binutils_bld)/bfd/elf-bfd.h $(binutils_bld)/usr/include && \
-	cp $(binutils_bld)/opcodes/.libs/libopcodes.a $(binutils_bld)/usr/lib &&\
-	rm -fr $(TOOLCHAIN_INSTALL)/share/doc && \
-	rm -f $(TOOLCHAIN_INSTALL)/bin/$(TARGET)-ld.bfd && \
-	rm -f $(TOOLCHAIN_INSTALL)/bin/ld.bfd &&\
-	rm -f $(TOOLCHAIN_INSTALL)/$(TARGET)/bin/ld.bfd \
-	)
+	$(MAKE) && $(MAKE) install DESTDIR=$(binutils_bld)/install-root && \
+	rm -fr $(binutils_bld)/install-root/usr/{info,lib,man,share} && \
+	mkdir -p $(TOOLCHAIN_INSTALL) &&\
+	cp -a install-root/$(PREFIX)/* $(TOOLCHAIN_INSTALL))
 
 # install kernel headers for glibc
 $(eval $(call prepare_source,linux,$(LINUX_VER),tar.bz2))
@@ -176,8 +158,8 @@ $(linux_dest): $(linux_src)
 	source $(curdir)/env.sh ; $(call MK_ENV1) ;\
 	cd $(linux_bld) &&\
 	make ARCH=$(TARGET_ARCH) CROSS_COMPILE=$(TOOLCHAIN_INSTALL)/bin/$(TARGET)- INSTALL_HDR_PATH=dest headers_install &&\
-	cp -rv dest/include/* $(TOOLCHAIN_INSTALL_SYSROOT)/usr/include/ && touch $@; \
-	mkdir -p $(SYSROOT)/{atom,core2}
+	cp -rv dest/include/* $(TOOLCHAIN_INSTALL_SYSROOT)/usr/include/ && touch $@ && \
+	mkdir -p $(SYSROOT)/{atom,core2} \
 	)
 
 # install glibc header
@@ -253,9 +235,9 @@ $(gcc1_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
 	--enable-poison-system-directories \
 	--with-build-time-tools=$(TOOLCHAIN_INSTALL)/bin  && \
 	$(MAKE) LDFLAGS_FOR_TARGET=--sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
-			LDFLAGS_FOR_BUILD=-Wl,-rpath=$(TOOLCHAIN_HOST) \
 			CPPFLAGS_FOR_TARGET=--sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
-			build_tooldir=$(TOOLCHAIN_INSTALL)/$(TARGET) )
+			build_tooldir=$(TOOLCHAIN_INSTALL))
+
 #--with-arch-64=nocona \
 #'--with-host-libstdcxx=-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm' 
 build: $(gcc1_dest)

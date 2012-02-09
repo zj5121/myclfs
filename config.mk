@@ -7,8 +7,8 @@ NR_CPU := $(shell cat /proc/cpuinfo|grep processor|wc -l)
 MAKE := make -j$(NR_CPU)
 BASE := /cross
 TOOLCHAIN_HOST:= $(BASE)/host/usr
-TOOLCHAIN_INSTALL := $(BASE)/$(TARGET)/install
-TOOLCHAIN_INSTALL_SYSROOT := $(TOOLCHAIN_INSTALL)/$(TARGET)/sysroot
+TOOLCHAIN_INSTALL := $(BASE)/install/$(TARGET)
+TOOLCHAIN_INSTALL_SYSROOT := $(TOOLCHAIN_INSTALL)/sysroot
 PREFIX := /cross/sysroot
 SYSROOT := $(PREFIX)/$(TARGET)
 
