@@ -27,17 +27,16 @@ $(gmp_dest): $(gmp_src)
 
 # mpfr lib
 $(eval $(call prepare_source,mpfr,$(MPFR_VER),tar.bz2))
-$(eval $(call patch_source,MPFR_PATCHES,mpfr,3.1.0))
+#$(eval $(call patch_source,MPFR_PATCHES,mpfr,3.1.0))
 mpfr_dest := $(TOOLCHAIN_HOST)/lib/libmpfr.a
 mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
-$(mpfr_dest): $(mpfr_patched) $(gmp_dest)
-	@(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
+$(mpfr_dest): $(mpfr_src) $(gmp_dest)
+	(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
 	source $(curdir)/env.sh && \
 	cd $(mpfr_bld) && \
-	CPPFLAGS="-I$(TOOLCHAIN_HOST)/include" \
-	CFLAGS="-I$(TOOLCHAIN_HOST)/include" \
 	LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/lib" \
-	$(mpfr_src_dir)/configure --prefix=$(TOOLCHAIN_HOST) \
+	$(mpfr_src_dir)/configure \
+	--prefix=$(TOOLCHAIN_HOST) \
 	--disable-shared \
 	--with-gmp=$(TOOLCHAIN_HOST) &&\
 	$(MAKE) && $(MAKE) install && $(MAKE) check)
@@ -122,28 +121,29 @@ $(libelf_dest): $(libelf_src)
 
 	
 # bintuils pass1
-$(eval $(call prepare_source,binutils,2.22,tar.bz2))
+$(eval $(call prepare_source,binutils,$(BINUTILS_VER)a,tar.bz2))
 binutils_dest := $(TOOLCHAIN_INSTALL)/bin/$(TARGET)-ar
 binutils_bld := $(BLD)/binutils-$(BINUTILS_VER)
 $(binutils_dest): $(binutils_src) $(cloog_dest) $(libelf_dset)
-	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(binutils_bld)))
+	@$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(binutils_bld)))
 	(rm -fr $(binutils_bld) && mkdir -p $(binutils_bld) && \
 	source $(curdir)/env.sh ; $(call MK_ENV1) ;\
 	cd $(binutils_bld) && \
-	$(call copy_dir_clean,$(binutils_src_dir),$(binutils_bld)) && \
-	$(binutils_bld)/configure \
-	--prefix=$(PREFIX)  \
-	--build=$(BUILD)  \
+	(AR=ar AS=as \
+	$(binutils_src_dir)a/configure \
+	--prefix=$(TOOLCHAIN_INSTALL)  \
+	--build=$(BUILD) \
 	--host=$(BUILD) \
 	--target=$(TARGET) \
 	--with-sysroot=$(SYSROOT) \
-	--disable-nls --enable-shared \
+	--with-lib-path=$(SYSROOT)/lib \
+	--disable-nls \
+	--enable-shared \
 	--disable-multilib && \
-	mkdir -p $(binutils_bld)/usr/lib && \
-	$(MAKE) && $(MAKE) install DESTDIR=$(binutils_bld)/install-root && \
-	rm -fr $(binutils_bld)/install-root/usr/{info,lib,man,share} && \
-	mkdir -p $(TOOLCHAIN_INSTALL) &&\
-	cp -a install-root/$(PREFIX)/* $(TOOLCHAIN_INSTALL))
+	$(MAKE) configure-host && $(MAKE) && make install) && \
+	mkdir -p $(TOOLCHAIN_INSTALL) && \
+	install -d -v $(SYSROOT)/include && \
+	install -v $(binutils_src_dir)/include/libiberty.h $(SYSROOT)/include)
 
 # install kernel headers for glibc
 $(eval $(call prepare_source,linux,$(LINUX_VER),tar.bz2))
@@ -157,9 +157,8 @@ $(linux_dest): $(linux_src)
 	$(call copy_dir_clean,$(linux_src_dir),$(linux_bld)) &&\
 	source $(curdir)/env.sh ; $(call MK_ENV1) ;\
 	cd $(linux_bld) &&\
-	make ARCH=$(TARGET_ARCH) CROSS_COMPILE=$(TOOLCHAIN_INSTALL)/bin/$(TARGET)- INSTALL_HDR_PATH=dest headers_install &&\
-	cp -rv dest/include/* $(TOOLCHAIN_INSTALL_SYSROOT)/usr/include/ && touch $@ && \
-	mkdir -p $(SYSROOT)/{atom,core2} \
+	make ARCH=$(TARGET_ARCH) INSTALL_HDR_PATH=dest headers_install &&\
+	cp -rv dest/include/* $(SYSROOT)/usr/include/ && touch $@ \
 	)
 
 # install glibc header
@@ -181,41 +180,40 @@ $(glibc_hdr_dest) : $(glibc_src)
 		ln -s usr/include $(SYSROOT)/sys-include)
 
 # gcc-4.6 pass1
-$(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,core))
-$(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,g++))
+$(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2))
+#$(eval $(call prepare_source,gcc,$(GCC_VER),tar.bz2,g++))
 $(call patch_source,GCC_PATCHES,gcc,$(GCC_VER))
 gcc1_dest := $(TOOLCHAIN_INSTALL)/bin/$(TARGET)-gcc
 gcc1_bld := $(BLD)/gcc-$(GCC_VER)
 $(gcc1_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
 	$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(gcc1_dest))))
-	(source $(curdir)/env.sh ; $(call MK_ENV1) ; $(call MK_ENV2); \
+	(source $(curdir)/env.sh ; \
+	cd $(gcc_src_dir) && \
+	echo -en '#undef STANDARD_INCLUDE_DIR\n#define STANDARD_INCLUDE_DIR "$(SYSROOT)/include/"\n\n' >> gcc/config/linux.h && \
+	echo -en '\n#undef STANDARD_STARTFILE_PREFIX_1\n#define STANDARD_STARTFILE_PREFIX_1 "$(SYSROOT)/lib/"\n' >> gcc/config/linux.h && \
+	echo -en '\n#undef STANDARD_STARTFILE_PREFIX_2\n#define STANDARD_STARTFILE_PREFIX_2 ""\n' >> gcc/config/linux.h && \
+	cp -v gcc/Makefile.in{,.orig} && \
+	sed -e "s@\(^CROSS_SYSTEM_HEADER_DIR =\).*@\1 $(SYSROOT)/include@g" \
+    gcc/Makefile.in.orig > gcc/Makefile.in && \
+    touch $(SYSROOT)/include/limits.h && \
 	rm -rf $(gcc1_bld) && \
 	mkdir -p $(gcc1_bld) && cd $(gcc1_bld) && \
+	AR=ar LDFLAGS="-Wl,-rpath=$(TOOLCHAIN_HOST)/lib"
 	$(gcc_src_dir)/configure \
 	--target=i686-pc-linux-gnu \
 	--build=$(BUILD) \
 	--host=$(BUILD) \
-	--enable-threads \
+	--with-local-prefix=$(PREFIX)
 	--disable-libmudflap \
 	--disable-libssp \
 	--disable-libstdcxx-pch \
-	--enable-targets=all \
 	--disable-multilib \
-	--with-arch-32=pentium4 \
-	--with-cpu=generic \
-	--with-gnu-as \
-	--with-gnu-ld \
-	--enable-languages=c,c++ \
 	--disable-shared\
-	--enable-lto \
 	--enable-symvers=gnu \
-	--enable-__cxa_atexit \
-	'--with-pkgversion=Sourcery CodeBench Lite 2011.09-24' \
 	--disable-nls \
-	--prefix=$(PREFIX) \
+	--prefix=$(TOOLCHAIN_HOST) \
 	--disable-shared \
 	--disable-threads \
-	--disable-libssp \
 	--disable-libgomp \
 	--without-headers \
 	--with-newlib \
@@ -224,7 +222,6 @@ $(gcc1_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
 	--disable-libquadmath \
 	--enable-languages=c \
 	--with-sysroot=$(SYSROOT) \
-	--with-build-sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
 	--with-gmp=$(TOOLCHAIN_HOST) \
 	--with-mpc=$(TOOLCHAIN_HOST) \
 	--with-mpfr=$(TOOLCHAIN_HOST) \
@@ -234,9 +231,9 @@ $(gcc1_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest)
 	--disable-libgomp \
 	--enable-poison-system-directories \
 	--with-build-time-tools=$(TOOLCHAIN_INSTALL)/bin  && \
-	$(MAKE) LDFLAGS_FOR_TARGET=--sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
-			CPPFLAGS_FOR_TARGET=--sysroot=$(TOOLCHAIN_INSTALL_SYSROOT) \
-			build_tooldir=$(TOOLCHAIN_INSTALL))
+	$(MAKE) all-gcc all-target-libgcc && \
+	$(MAKE) install-gcc install-target-libgcc )
+			
 
 #--with-arch-64=nocona \
 #'--with-host-libstdcxx=-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm' 

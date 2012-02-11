@@ -20,12 +20,13 @@ parent = $(patsubst %/,%,$(dir $(1)))
 INFO_PREP_SRC := I: Prepare source
 INFO_PATCH_SRC := I: Patch source 
 INFO_CONFIG := I: Configure
-UNTAR.bz2 = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...); tar jxf 
-UNTAR.gz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar zxf 
-UNTAR.xz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar Jxf 
+UNTAR.bz2 = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...); tar --strip=1 -jxf 
+UNTAR.gz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar --strip=1 -zxf 
+UNTAR.xz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar --strip=1 -Jxf 
 
+# $1 = src dest dir
 define UNTARCMD
-@(mkdir -p $(SRC) && $(UNTAR$(suffix $<)) $< -C $(SRC) && touch $@ && $(call echo_cmd,, done))
+@(mkdir -p $(SRC)/$(1) && $$(UNTAR$$(suffix $$<)) $$< -C $(SRC)/$(1) && touch $$@ && $(call echo_cmd,, done))
 endef
 
 PATCH_ = $(call echo_cmd,-n,$(INFO_PATCH_SRC) $(notdir $<) ...); patch -d $(dir $@) -i $< -p1 2>&1 >/dev/null
@@ -45,7 +46,8 @@ define prepare_source
 $(1)$(if $(4),-$(4),)_untared := $(SRC)/$(1)-$(2)/.$(1)-$(if $(4),$(4)-,)$(2)_untared
 $(1)$(if $(4),-$(4),)_tar := $(TAR_DIR)/$(1)-$(if $(4),$(4)-,)$(2).$(3)
 $$($(1)$(if $(4),-$(4),)_untared): $$($(1)$(if $(4),-$(4),)_tar)
-	$(value UNTARCMD)
+	@mkdir -p $(SRC)/$(1)-$(2)
+	$(call UNTARCMD,$(1)-$(2))
 
 $(1)_src := $$($(1)_src) $$($(1)$(if $(4),-$(4),)_untared)
 $$(if $$($(1)_src_dir),,$$(eval $(1)_src_dir := $(SRC)/$(1)-$(2)))
