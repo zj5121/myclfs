@@ -6,13 +6,10 @@ TARGET_ARCH := i386
 NR_CPU := $(shell cat /proc/cpuinfo|grep processor|wc -l)
 MAKE := make -j$(NR_CPU)
 BASE := /cross
-TOOLCHAIN_HOST:= $(BASE)/host/usr
-TOOLCHAIN_INSTALL := $(BASE)/install/$(TARGET)
-TOOLCHAIN_INSTALL_SYSROOT := $(TOOLCHAIN_INSTALL)/sysroot
-PREFIX := /cross/sysroot
-SYSROOT := $(PREFIX)/$(TARGET)
+TOOLS := /tools
+CROSS_TOOLS := /cross_tools
 
-PATH := $(TOOCHAIN_HOST)/bin:/bin:/usr/bin
+PATH := $(CROSS_TOOLS)/bin:/bin:/usr/bin
 
 BUILD := $(shell gcc -dumpmachine)
 

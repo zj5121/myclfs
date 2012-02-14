@@ -1,4 +1,7 @@
 #!/bin/sh
+env -i
+HOME=${HOME}
+TERM=${TERM}
 set -e
 set -u
 umask 022

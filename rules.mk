@@ -86,16 +86,19 @@ mkdir -p "$2" && (cd "$1" && tar cf - \
 endef
 
 define MK_ENV1
-export BASE=/cross ; \
-export PREFIX=/opt/x-tools ; \
-export SYSROOT=$(PREFIX)/$(TARGET)/sysroot ; \
-export PATH=$(TOOLCHAIN_INSTALL)/bin:/bin:/usr/bin 
+export PREFIX=$(BASE); \
+export PATH=$(CROSS_TOOLS)/bin:/bin:/usr/bin 
 endef
 
 define MK_ENV2
-export PATH=$(TOOLCHAIN_INSTALL)/bin:/bin:/usr/bin ; \
-export AR_FOR_TARGET=$(TARGET)-ar ; \
-export NM_FOR_TARGET=$(TARGET)-nm ; \
-export OBJDUMP_FOR_TARGET=$(TARGET)-objdump ; \
-export STRIP_FOR_TARGET=$(TARGET)-strip 
+export CC="$(TARGET)-gcc" ;\
+export CXX="$(TARGET)-g++";\
+export AR="$(TARGET)-ar"; \
+export AS="$(TARGET)-as";\
+export RANLIB="$(TARGET)-ranlib";\
+export LD="$(TARGET)-ld";\
+export STRIP="$(TARGET)-strip";\
+export PATH=$(CROSS_TOOLS)/bin:/bin:/usr/bin 
 endef
+
+TOUCH_DEST = mkdir -p $(dir $@) && touch $@
