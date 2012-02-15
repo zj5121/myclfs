@@ -2,6 +2,13 @@
 PACKAGES = $(wildcard $(TAR_DIR)/*.bz2) $(wildcard $(TAR_DIR)/*.gz) $(wildcard $(TAR_DIR)/*.xz)
 PATCHES = $(wildcard $(PATCH_DIR)/*.patch)
 
+PACKAGE_HTML := $(DOWNLOAD)/packages.html
+PACKAGE_URL := http://cross-lfs.org/view/svn/x86/materials/packages.html
+PACKAGE_CONF := packages.conf
+PATCH_HTML := $(DOWNLOAD)/patches.html
+PATCH_URL := http://cross-lfs.org/view/svn/x86/materials/patches.html
+PATCH_CONF := patches.conf
+
 LINUX_VER := 2.6.39
 BINUTILS_VER := 2.21.1a
 GCC_VER := 4.6.0

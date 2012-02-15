@@ -1,23 +1,85 @@
 include config.mk
 include rules.mk
+include packages_def.mk
 
-curdir := $(shell pwd)
 
 .PHONY: prep all
 
-all: prep build
+config := $(shell if [ ! -f $(PACKAGE_CONF) ]; then echo 1; else echo ; fi)
+define CONFIG
+all: $$(PACKAGE_CONF) $$(PATCH_CONF)
+	$(Q)make download_packages
+	$(Q)$(MAKE) all
 
-include packages.mk
+endef
+define BUILD_ALL
+all: build
 
-prep:
-	@(if [ ! -d $(BASE) ] ; then install -d -v $(BASE); fi)
-	@(if [ ! -d $(BASE)$(CROSS_TOOLS) ] ; then \
+include $(PACKAGE_CONF)
+include $(PATCH_CONF)
+endef
+
+DOWNLOAD_PKG = $$(Q)$$\(call echo_cmd\,\,"I: Downloading $$(notdir $$@)\t:\t $(1)"\)\n\t$$(Q)\(wget --progress=bar -nv -c $(1) -O $$@ || exit 1;\)
+
+$(if $(config),$(eval $(call CONFIG)),$(eval $(call BUILD_ALL)))
+
+$(PACKAGE_CONF): $(PACKAGE_HTML) 
+	$(Q)(echo -n "download_list := " > $@ && \
+		(grep -A1 "Download:" $< | \
+		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,\4 \\,p'>>$@)  && \
+	echo  "" >> $@ && \
+	(grep -A1 "Download:" $< | \
+		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,$$(DOWNLOAD)/\4:\n\t$(call DOWNLOAD_PKG,\1)\n,p' |\
+		sed 's/^[ ]*//'>> $@ ) )
+
+$(PATCH_CONF): $(PATCH_HTML)
+	$(Q)(echo -n "patches_list := " > $@ && \
+		(grep -A1 "Download:" $< | \
+		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,\4 \\,p'>>$@)  && \
+	echo  "" >> $@ && \
+	(grep -A1 "Download:" $< | \
+		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,$$(PATCHES_DIR)/\4:\n\t$(call DOWNLOAD_PKG,\1)\n,p' |\
+		sed 's/^[ ]*//'>> $@ ) )
+
+$(PATCH_HTML) :
+	$(Q)$(call echo_cmd,-n,Fetch $(PATCH_URL) --> $@ ... ,,)
+	$(Q)(wget -c $(PATCH_URL) -O $@ && touch $@; \
+		if [ "x$$?" == "x0" ]; then \
+			grep "Not Found" $(PATCH_HTML) 2>&1 >/dev/null && \
+			$(call echo_err,,Failed) && rm -fr $@ && exit 1; \
+			$(call echo_cmd,,Done!,,) ;\
+		else \
+			$(call echo_err,,Failed); rm -f $@; exit 1; \
+		fi)
+
+$(PACKAGE_HTML): $(MYPATCHES_DIR)/$(notdir $(PACKAGE_HTML)).patch
+	$(Q)$(call echo_cmd,-n,Fetch $(PACKAGE_URL) --> $@ ... ,,)
+	$(Q)(wget -q -c $(PACKAGE_URL) -O $@ && touch $@ ; \
+		if [ "x$$?" == "x0" ]; then \
+			grep "Not Found" $(PACKAGE_HTML) 2>&1 >/dev/null && \
+			$(call echo_err,,Failed) && rm -fr $@ && exit 1;\
+			$(call echo_cmd,,Done!,,) ;\
+			$(call echo_cmd,,Patch $@,,); \
+			patch -i $(MYPATCHES_DIR)/$(notdir $(PACKAGE_HTML).patch) $@;\
+		else \
+			$(call echo_err,,Failed); rm -f $@; exit 1;\
+		fi)
+
+download_packages: $(foreach f,$(download_list),$(addprefix $(DOWNLOAD)/,$(f))) \
+					$(foreach f,$(patches_list),$(addprefix $(PATCHES_DIR)/,$(f))) 
+
+prep: 
+	$(Q)(if [ ! -d $(DOWNLOAD) ] ; then install -d -v $(DOWNLOAD); fi )
+	$(Q)(if [ ! -d $(BASE) ] ; then install -d -v $(BASE); fi)
+	$(Q)(if [ ! -d $(BASE)$(CROSS_TOOLS) ] ; then \
 		install -d -v $(BASE)$(CROSS_TOOLS) && \
 		sudo ln -f -s $(BASE)$(CROSS_TOOLS) / ; fi)
-	@(if [ ! -d $(BASE)$(TOOLS) ] ; then \
+	$(Q)(if [ ! -d $(BASE)$(TOOLS) ] ; then \
 		install -d -v $(BASE)$(TOOLS)  && \
 		sudo ln -f -s $(BASE)$(TOOLS) / ; fi)
 
+
+build: download_packages
 
 # gmp lib
 $(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
@@ -426,6 +488,6 @@ $(gcc3_dest): $(binutils2_dest)
 	$(MAKE) AS_FOR_TARGET="${AS}" LD_FOR_TARGET="${LD}" && $(MAKE) install && \
 	$(call TOUCH_DEST)))
 
-build: $(gcc3_dest)
+#build: $(gcc3_dest)
 
 

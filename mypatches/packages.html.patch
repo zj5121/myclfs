@@ -1,0 +1,11 @@
+--- packages.html.orig	2012-02-14 23:06:34.404585493 -0500
++++ packages.html	2012-02-14 23:06:57.327378169 -0500
+@@ -1193,7 +1193,7 @@
+               </p>
+               <p>
+                 Download: <a class="ulink" href=
+-                "http://zlib.net/zlib-1.2.5.tar.bz2">http://zlib.net/zlib-1.2.5.tar.bz2</a>
++                "http://zlib.net/zlib-1.2.6.tar.bz2">http://zlib.net/zlib-1.2.6.tar.bz2</a>
+               </p>
+               <p>
+                 MD5 sum: <code class=

@@ -3,16 +3,22 @@ COLOR_TTY := true
 
 COLOR := \033[33;40m
 NOCOLOR := \033[0m
+ERRCOLOR := \033[31;40m
 
 ifneq ($(VERBOSE),true)
+Q = @
 ifeq ($(COLOR_TTY),true)
 echo_prog := $(shell if echo -e | grep -q -- -e; then echo echo ; else echo echo -e ; fi)
 echo_cmd = $(echo_prog) $(1) "$(COLOR)$(2)$(NOCOLOR)"
+echo_err = $(echo_prog) $(1) "$(ERRCOLOR)$(2)$(NOCOLOR)"
 else
-echo_cmd = @echo "$(1)";
+echo_cmd = @echo "$(1)"
+echo_err = @echo "$(1)"
 endif
 else # Verbose output
+Q =
 echo_cmd =
+echo_err = 
 endif
 
 parent = $(patsubst %/,%,$(dir $(1)))
