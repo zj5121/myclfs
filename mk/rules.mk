@@ -108,3 +108,50 @@ export PATH=$(CROSS_TOOLS)/bin:/bin:/usr/bin
 endef
 
 TOUCH_DEST = mkdir -p $(dir $@) && touch $@
+
+# $1 - target file
+# $2 - url
+# $3 - result target file list
+define download_file
+$(DOWNLOAD)/$(1) :
+	$$(Q)$$(call echo_cmd,-n,Fetch $(2) --> $$@ ... ,,)
+	@(wget -q -c $(2) -O $$@ && touch $$@; $\\
+		if [ "x$$$$?" == "x0" ]; then $\\
+			grep "Not Found" $$@ 2>&1 >/dev/null && $\\
+			$$(call echo_err,,Failed) && rm -fr $$@ && exit 1; $\\
+			$$(call echo_cmd,,Done!,,) ;$\\
+			if [ -f $(MYPATCHES_DIR)/$(1).patch ]; then $\\
+				patch -i $(MYPATCHES_DIR)/$(1).patch $$@; $\\
+			fi $\\
+		else $\\
+			$$(call echo_err,,Failed); rm -f $$@; exit 1; $\\
+		fi)
+
+$3 := $(DOWNLOAD)/$1 $$($3)
+endef
+
+# $1 - target/url pair list
+# $2 - result target file list
+get_clfs_htmls = $(if $1,$(eval $(call download_file,$(firstword $1),$(firstword $(call rest,$1)),$2)) \
+                        $(eval $(call get_clfs_htmls,$(call rest,$(call rest,$1)),$2)))
+
+# $1 - src html file
+# $2 - result package tgt list
+define mk_dw_tgt_list_from_html
+$(notdir $(1:.html=.mk)): $(1) 
+	$$(Q)(echo -n "$2 := $$($2) " > $$@ && $\\
+	(grep -A1 "Download:" $$< | $\\
+		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$$$,\4 \\,p'>>$$@)  && $\\
+	echo  "" >> $$@ && $\\
+	(grep -A1 "Download:" $$< | $\\
+		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$$$,\4: $$(DOWNLOAD)/\4\n$$(DOWNLOAD)/\4:\n\t$$(call DOWNLOAD_PKG,\1)\n,p' |$\\
+		sed 's/^[ ]*//'>> $$@ ) )
+
+-include $(notdir $(1:.html=.mk))
+endef
+
+# $1 html file list
+# $2 packge tgt list name
+get_clfs_packages = $(foreach f,$1,$(eval $(call mk_dw_tgt_list_from_html,$f,$2)))
+
+DOWNLOAD_PKG = $$(Q)$$\(call echo_cmd\,\,"I: Downloading $$(notdir $$@)"\)\n\t$$(Q)\(wget --progress=bar -nv -c $(1) -O $$@ || (rm -f $$@ ; exit 1;)\)

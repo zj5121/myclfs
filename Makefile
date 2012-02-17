@@ -1,72 +1,30 @@
-include config.mk
-include rules.mk
-include packages_def.mk
+
+CURDIR := $(shell pwd)
+MK := $(CURDIR)/mk
+
+include $(MK)/gmsl
+include $(MK)/config.mk
+include $(MK)/rules.mk
+include $(MK)/packages_def.mk
 
 
 .PHONY: prep all
 
-config := $(shell if [ ! -f $(PACKAGE_CONF) ]; then echo 1; else echo ; fi)
-define CONFIG
-all: $$(PACKAGE_CONF) $$(PATCH_CONF)
-	$(Q)make download_packages
-	$(Q)$(MAKE) all
+all: prep download_pkgs build
 
-endef
-define BUILD_ALL
-all: build
+# first step, download clfs htmls
+clfs_htmls :=
 
-include $(PACKAGE_CONF)
-include $(PATCH_CONF)
-endef
+$(call get_clfs_htmls,$(clfs_files),clfs_htmls)
 
-DOWNLOAD_PKG = $$(Q)$$\(call echo_cmd\,\,"I: Downloading $$(notdir $$@)\t:\t $(1)"\)\n\t$$(Q)\(wget --progress=bar -nv -c $(1) -O $$@ || exit 1;\)
+# second is to construct package targets
 
-$(if $(config),$(eval $(call CONFIG)),$(eval $(call BUILD_ALL)))
+#  this will gnerate *.mk file, which includes package targets
+$(call get_clfs_packages,$(clfs_htmls),download_list)
 
-$(PACKAGE_CONF): $(PACKAGE_HTML) 
-	$(Q)(echo -n "download_list := " > $@ && \
-		(grep -A1 "Download:" $< | \
-		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,\4 \\,p'>>$@)  && \
-	echo  "" >> $@ && \
-	(grep -A1 "Download:" $< | \
-		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,$$(DOWNLOAD)/\4:\n\t$(call DOWNLOAD_PKG,\1)\n,p' |\
-		sed 's/^[ ]*//'>> $@ ) )
+htmls: $(clfs_htmls)
 
-$(PATCH_CONF): $(PATCH_HTML)
-	$(Q)(echo -n "patches_list := " > $@ && \
-		(grep -A1 "Download:" $< | \
-		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,\4 \\,p'>>$@)  && \
-	echo  "" >> $@ && \
-	(grep -A1 "Download:" $< | \
-		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$,$$(PATCHES_DIR)/\4:\n\t$(call DOWNLOAD_PKG,\1)\n,p' |\
-		sed 's/^[ ]*//'>> $@ ) )
-
-$(PATCH_HTML) :
-	$(Q)$(call echo_cmd,-n,Fetch $(PATCH_URL) --> $@ ... ,,)
-	$(Q)(wget -c $(PATCH_URL) -O $@ && touch $@; \
-		if [ "x$$?" == "x0" ]; then \
-			grep "Not Found" $(PATCH_HTML) 2>&1 >/dev/null && \
-			$(call echo_err,,Failed) && rm -fr $@ && exit 1; \
-			$(call echo_cmd,,Done!,,) ;\
-		else \
-			$(call echo_err,,Failed); rm -f $@; exit 1; \
-		fi)
-
-$(PACKAGE_HTML): $(MYPATCHES_DIR)/$(notdir $(PACKAGE_HTML)).patch
-	$(Q)$(call echo_cmd,-n,Fetch $(PACKAGE_URL) --> $@ ... ,,)
-	$(Q)(wget -q -c $(PACKAGE_URL) -O $@ && touch $@ ; \
-		if [ "x$$?" == "x0" ]; then \
-			grep "Not Found" $(PACKAGE_HTML) 2>&1 >/dev/null && \
-			$(call echo_err,,Failed) && rm -fr $@ && exit 1;\
-			$(call echo_cmd,,Done!,,) ;\
-			$(call echo_cmd,,Patch $@,,); \
-			patch -i $(MYPATCHES_DIR)/$(notdir $(PACKAGE_HTML).patch) $@;\
-		else \
-			$(call echo_err,,Failed); rm -f $@; exit 1;\
-		fi)
-
-download_packages: $(foreach f,$(download_list),$(addprefix $(DOWNLOAD)/,$(f))) \
-					$(foreach f,$(patches_list),$(addprefix $(PATCHES_DIR)/,$(f))) 
+download_pkgs : htmls $(download_list)
 
 prep: 
 	$(Q)(if [ ! -d $(DOWNLOAD) ] ; then install -d -v $(DOWNLOAD); fi )
@@ -79,7 +37,6 @@ prep:
 		sudo ln -f -s $(BASE)$(TOOLS) / ; fi)
 
 
-build: download_packages
 
 # gmp lib
 $(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
@@ -87,7 +44,7 @@ gmp_dest := $(CROSS_TOOLS)/.bld/gmp
 gmp_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp_dest): $(prep) $(gmp_src) 
 	(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
-	(source $(curdir)/env.sh ; $(call MK_ENV1);\
+	(source $(MK)/env.sh ; $(call MK_ENV1);\
 	cd $(gmp_bld) && \
 	CPPFLAGS="-fexceptions" $(gmp_src_dir)/configure \
 	--prefix=$(CROSS_TOOLS) \
@@ -103,7 +60,7 @@ mpfr_dest := $(CROSS_TOOLS)/.bld/mpfr
 mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
 $(mpfr_dest): $(mpfr_src) $(gmp_dest)
 	(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
-	(source $(curdir)/env.sh ; $(call MK_ENV1); \
+	(source $(MK)/env.sh ; $(call MK_ENV1); \
 	cd $(mpfr_bld) && \
 	LDFLAGS="-Wl,-rpath=$(CROSS_TOOLS)/lib" \
 	$(mpfr_src_dir)/configure \
@@ -119,7 +76,7 @@ mpc_bld := $(BLD)/mpc-$(MPC_VER)
 $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
 	@($(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(mpc_bld)))))
 	@(rm -fr $(mpc_bld) && mkdir -p $(mpc_bld) &&\
-	(source $(curdir)/env.sh ; $(call MK_ENV1) ;\
+	(source $(MK)/env.sh ; $(call MK_ENV1) ;\
 	cd $(mpc_bld) &&\
 	CPPFLAGS="-I$(CROSS_TOOLS)/include" \
 	LDFLAGS="-Wl,-rpath=$(CROSS_TOOLS)/lib" \
@@ -137,7 +94,7 @@ ppl_bld := $(BLD)/ppl-$(PPL_VER)
 $(ppl_dest): $(ppl_src) $(mpc_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(ppl_bld)))
 	@(rm -fr $(ppl_bld) && mkdir -p $(ppl_bld) &&\
-	(source $(curdir)/env.sh ; $(call MK_ENV1) ;\
+	(source $(MK)/env.sh ; $(call MK_ENV1) ;\
 	cd $(ppl_bld) && \
 	CFLAGS="-I$(CROSS_TOOLS)/include" CPPFLAGS="-I$(CROSS_TOOLS)/include" \
 	LDFLAGS="-Wl,-rpath=$(CROSS_TOOLS)/lib" \
@@ -161,7 +118,7 @@ $(cloog_dest): $(cloog-ppl_src) $(gmp_dest) $(ppl_dest)
 	(cd $(cloog-ppl_src_dir) && \
 	 [ ! -f configure.orig ] && cp -v configure{,.orig} && \
 	 sed -e "/LD_LIBRARY_PATH=/d" configure.orig > configure) ; \
-	(source $(curdir)/env.sh ; $(call MK_ENV1); \
+	(source $(MK)/env.sh ; $(call MK_ENV1); \
 	cd $(cloog_bld) && LDFLAGS="-Wl,-rpath=$(CROSS_TOOLS)/lib" \
 	$(cloog-ppl_src_dir)/configure --prefix=$(CROSS_TOOLS) \
 	--enable-shared \
@@ -178,7 +135,7 @@ libelf_bld := $(BLD)/libelf-$(LIBELF_VER)
 $(libelf_dest): $(libelf_src)
 	@($(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(cloog_bld)))))
 	@(rm -fr $(libelf_bld) && mkdir -p $(libelf_bld) && \
-	(source $(curdir)/env.sh;  $(call MK_ENV1); \
+	(source $(MK)/env.sh;  $(call MK_ENV1); \
 	cd $(libelf_bld) && \
 	$(libelf_src_dir)/configure --prefix=$(CROSS_TOOLS) \
 	--build=$(BUILD) \
@@ -198,7 +155,7 @@ $(binutils_dest): $(binutils_src) $(cloog_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(binutils_bld)))
 	(rm -fr $(binutils_bld) && mkdir -p $(binutils_bld) && \
 	cd $(binutils_bld) && \
-	source $(curdir)/env.sh ; $(call MK_ENV1) ;\
+	source $(MK)/env.sh ; $(call MK_ENV1) ;\
 	(AR=ar AS=as \
 	$(binutils_src_dir)/configure \
 	--prefix=$(CROSS_TOOLS)  \
@@ -225,7 +182,7 @@ $(linux_dest): $(linux_src)
 	rm -rf $(linux_bld) &&\
 	$(call copy_dir_clean,$(linux_src_dir),$(linux_bld)) &&\
 	cd $(linux_bld) &&\
-	source $(curdir)/env.sh ; $(call MK_ENV1) ;\
+	source $(MK)/env.sh ; $(call MK_ENV1) ;\
 	make ARCH=$(TARGET_ARCH) INSTALL_HDR_PATH=dest headers_install &&\
 	cp -rv dest/include/* $(linux_dest_dir)/ && mkdir -p $(dir $@) && touch $@ \
 	)
@@ -246,7 +203,7 @@ $(gcc1_dest) : $(gcc_src) $(gcc_patched) $(binutils_dest) $(linux_dest)
 	touch $(TOOLS)/include/limits.h && \
 	rm -rf $(gcc1_bld) && \
 	mkdir -p $(gcc1_bld) && cd $(gcc1_bld) && \
-	(source $(curdir)/env.sh ; $(call MK_ENV1) ;\
+	(source $(MK)/env.sh ; $(call MK_ENV1) ;\
 	AR=ar LDFLAGS="-Wl,-rpath=$(CROSS_TOOLS)/lib" \
 	$(gcc_src_dir)/configure \
 	--target=$(TARGET) \
@@ -296,7 +253,7 @@ $(eglibc1_dest) : $(eglibc_src) $(eglic_patched) $(gcc1_dest) $(linux_dest)
 		echo "libc_cv_gnu89_inline=yes" >> config.cache; \
 		echo "libc_cv_ssp=no" >> config.cache\
 	) &&  \
-	(source $(curdir)/env.sh ; $(call MK_ENV1); \
+	(source $(MK)/env.sh ; $(call MK_ENV1); \
 	BUILD_CC="gcc" CC="$(TARGET)-gcc" \
 	AR="$(TARGET)-ar" RANLIB="$(TARGET)-ranlib" \
 	CFLAGS="-march=$(shell cut -d- -f1 <<< '$(TARGET)') -mtune=generic -g -O2" \
@@ -324,7 +281,7 @@ $(gcc2_dest) : $(eglibc1_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(gcc2_dest)))))
 	(rm -fr $(gcc2_bld) && mkdir -p $(gcc2_bld) && \
 	cd $(gcc2_bld) && \
-	(source $(curdir)/env.sh ; $(call MK_ENV1) ; \
+	(source $(MK)/env.sh ; $(call MK_ENV1) ; \
 	AR=ar LDFLAGS="-Wl,-rpath=$(CROSS_TOOLS)/lib" \
 	$(gcc_src_dir)/configure \
 	--prefix=$(CROSS_TOOLS) \
@@ -488,6 +445,6 @@ $(gcc3_dest): $(binutils2_dest)
 	$(MAKE) AS_FOR_TARGET="${AS}" LD_FOR_TARGET="${LD}" && $(MAKE) install && \
 	$(call TOUCH_DEST)))
 
-#build: $(gcc3_dest)
+build: $(gcc3_dest)
 
 
