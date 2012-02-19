@@ -121,7 +121,7 @@ $(DOWNLOAD)/$(1) :
 			$$(call echo_err,,Failed) && rm -fr $$@ && exit 1; $\\
 			$$(call echo_cmd,,Done!,,) ;$\\
 			if [ -f $(MYPATCHES_DIR)/$(1).patch ]; then $\\
-				patch -i $(MYPATCHES_DIR)/$(1).patch $$@; $\\
+				patch -b -V t -i $(MYPATCHES_DIR)/$(1).patch $$@; $\\
 			fi $\\
 		else $\\
 			$$(call echo_err,,Failed); rm -f $$@; exit 1; $\\
@@ -138,14 +138,16 @@ get_clfs_htmls = $(if $1,$(eval $(call download_file,$(firstword $1),$(firstword
 # $1 - src html file
 # $2 - result package tgt list
 define mk_dw_tgt_list_from_html
-$(notdir $(1:.html=.mk)): $(1) 
-	$$(Q)(echo -n "$2 := $$($2) " > $$@ && $\\
+$2 := $(notdir $(1:.html=.mk)).$(2) $$($2) 
+$(notdir $(1:.html=.mk)): $(1) Makefile
+	$$(Q)$$(call echo_cmd,-n,Parse $$^ to $$@ ... ,,)
+	$$(Q)(echo -n "$$(@).$2 := " > $$@ && $\\
 	(grep -A1 "Download:" $$< | $\\
 		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$$$,\4 \\,p'>>$$@)  && $\\
 	echo  "" >> $$@ && $\\
 	(grep -A1 "Download:" $$< | $\\
 		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$$$,\4: $$(DOWNLOAD)/\4\n$$(DOWNLOAD)/\4:\n\t$$(call DOWNLOAD_PKG,\1)\n,p' |$\\
-		sed 's/^[ ]*//'>> $$@ ) )
+		sed 's/^[ ]*//'>> $$@ ) && $$(call echo_cmd,,Done!))
 
 -include $(notdir $(1:.html=.mk))
 endef

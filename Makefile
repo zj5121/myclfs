@@ -24,7 +24,7 @@ $(call get_clfs_packages,$(clfs_htmls),download_list)
 
 htmls: $(clfs_htmls)
 
-download_pkgs : htmls $(download_list)
+download_pkgs : htmls $(foreach f,$(download_list),$($f))
 
 prep: 
 	$(Q)(if [ ! -d $(DOWNLOAD) ] ; then install -d -v $(DOWNLOAD); fi )
@@ -314,7 +314,7 @@ gmp2_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp2_dest): $(gcc2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(gmp2_dest)))))
 	(rm -fr $(gmp2_bld) && mkdir -p $(gmp2_bld) && \
-	(source $(curdir)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(call MK_ENV2);\
 	cd $(gmp2_bld) && \
 	HOST_CC=gcc	CPPFLAGS="-fexceptions" $(gmp_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -330,7 +330,7 @@ mpfr2_bld := $(BLD)/mpfr-$(MPFR_VER)
 $(mpfr2_dest) : $(gmp2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(mpfr2_dest)))))
 	(rm -fr $(mpfr2_bld) && mkdir -p $(mpfr2_bld) && \
-	(source $(curdir)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(call MK_ENV2);\
 	cd $(mpfr2_bld) && \
 	$(mpfr_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -346,7 +346,7 @@ mpc2_bld := $(BLD)/mpc-$(MPC_VER)
 $(mpc2_dest) : $(mpfr2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(mpc2_dest)))))
 	(rm -fr $(mpc2_bld) && mkdir -p $(mpc2_bld) && \
-	(source $(curdir)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(call MK_ENV2);\
 	cd $(mpc2_bld) && \
 	EGREP="grep -E" \
 	$(mpc_src_dir)/configure \
@@ -363,7 +363,7 @@ ppl2_bld := $(BLD)/ppl-$(PPL_VER)
 $(ppl2_dest) : $(mpc2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(ppl2_dest)))))
 	(rm -fr $(ppl2_bld) && mkdir -p $(ppl2_bld) && \
-	(source $(curdir)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(call MK_ENV2);\
 	cd $(ppl2_bld) && \
 	$(ppl_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -384,7 +384,7 @@ cloog2_bld := $(BLD)/cloog-ppl-$(CLOOG_VER)
 $(cloog2_dest) : $(ppl2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(cloog2_dest)))))
 	(rm -fr $(cloog2_bld) && mkdir -p $(cloog2_bld) && \
-	(source $(curdir)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(call MK_ENV2);\
 	cd $(cloog2_bld) && \
 	$(cloog-ppl_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -402,7 +402,7 @@ binutils2_bld := $(BLD)/binutils-$(BINUTILS_VER)
 $(binutils2_dest) : $(cloog2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(binutils2_dest)))))
 	(rm -fr $(binutils2_bld) && mkdir -p $(binutils2_bld) && \
-	(source $(curdir)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(call MK_ENV2);\
 	cd $(binutils2_bld) && \
 	$(binutils_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -421,7 +421,7 @@ gcc3_bld := $(BLD)/gcc-$(GCC_VER)
 $(gcc3_dest): $(binutils2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(gcc3_dest)))))
 	(rm -fr $(gcc3_bld) && mkdir -p $(gcc3_bld) && \
-	(source $(curdir)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(call MK_ENV2);\
 	cd $(gcc3_bld) && \
 	$(gcc_src_dir)/configure \
 	--prefix=$(TOOLS) \
