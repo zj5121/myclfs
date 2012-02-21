@@ -66,9 +66,10 @@ endef
 # $3 = patch name
 # $4 = dependency (optional)
 define patch_source_
-$(1)-$(3)_patch := $(PATCH_DIR)/$(1)-$(2)-$(3).patch
+$(1)-$(3)_patch := $$(DOWNLOAD)/$(1)-$(2)-$(3).patch
 $(1)-$(3)_patch_dest := $$(dir $$(firstword $$($(1)_src))).$$(notdir $$($(1)-$(3)_patch))
 $$($(1)-$(3)_patch_dest): $$($(1)-$(3)_patch) $$($(1)_src) $(4)
+	$$(warning $$($(1)-$(3)_patch_dest))
 	$(value PATCHCMD)
 
 $(1)_patched := $$($(1)_patched) $$($(1)-$(3)_patch_dest) 
@@ -96,7 +97,9 @@ export PREFIX=$(BASE); \
 export PATH=$(CROSS_TOOLS)/bin:/bin:/usr/bin 
 endef
 
-define MK_ENV2
+MK_ENV2 = $(call MK_ENV2_)
+
+define MK_ENV2_
 export CC="$(TARGET)-gcc" ;\
 export CXX="$(TARGET)-g++";\
 export AR="$(TARGET)-ar"; \
@@ -140,7 +143,7 @@ get_clfs_htmls = $(if $1,$(eval $(call download_file,$(firstword $1),$(firstword
 define mk_dw_tgt_list_from_html
 $2 := $(notdir $(1:.html=.mk)).$(2) $$($2) 
 $(notdir $(1:.html=.mk)): $(1) Makefile
-	$$(Q)$$(call echo_cmd,-n,Parse $$^ to $$@ ... ,,)
+	$$(Q)$$(call echo_cmd,-n,Parse $$< to $$@ ... ,,)
 	$$(Q)(echo -n "$$(@).$2 := " > $$@ && $\\
 	(grep -A1 "Download:" $$< | $\\
 		sed -n 's,"\(\(http\|ftp\)://\(.*\)/\([^/]*\)\)".*$$$$,\4 \\,p'>>$$@)  && $\\
@@ -157,3 +160,17 @@ endef
 get_clfs_packages = $(foreach f,$1,$(eval $(call mk_dw_tgt_list_from_html,$f,$2)))
 
 DOWNLOAD_PKG = $$(Q)$$\(call echo_cmd\,\,"I: Downloading $$(notdir $$@)"\)\n\t$$(Q)\(wget --progress=bar -nv -c $(1) -O $$@ || (rm -f $$@ ; exit 1;)\)
+
+_check_file = $(wildcard $(filter $(DOWNLOAD)/$(1),$(2)),$(1),,)
+
+# $1 - package name
+# $2 - version number
+define build_tgt
+_file := $(or $(call _check_file,$(DOWNLOAD)/$(1)-$(2).tar.gz,$(call _check_file,$(DOWNLOAD)/$(1)-$(2).tar.bz2),$(call _check_file,$(DOWNLOAD/$(1)-$(2).tar.xz))))
+ifeq (_file,)
+_file := $(or $(call _check_file,$(DOWNLOAD)/$(1)-$(2).tar.gz,$(call _check_file,$(DOWNLOAD)/$(1)-$(2).tar.bz2),$(call _check_file,$(DOWNLOAD/$(1)-$(2).tar.xz)))))
+else
+endif
+$(eval $(call prepare_source,$1,$2,tar.bz2)))
+$(eval $(call patch_source, NCURSES_PATCHES,ncurses,$(NCURSES_VER)))
+endef

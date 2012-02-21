@@ -314,7 +314,7 @@ gmp2_bld  := $(BLD)/gmp-$(GMP_VER)
 $(gmp2_dest): $(gcc2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(gmp2_dest)))))
 	(rm -fr $(gmp2_bld) && mkdir -p $(gmp2_bld) && \
-	(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(MK_ENV2);\
 	cd $(gmp2_bld) && \
 	HOST_CC=gcc	CPPFLAGS="-fexceptions" $(gmp_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -330,7 +330,7 @@ mpfr2_bld := $(BLD)/mpfr-$(MPFR_VER)
 $(mpfr2_dest) : $(gmp2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(mpfr2_dest)))))
 	(rm -fr $(mpfr2_bld) && mkdir -p $(mpfr2_bld) && \
-	(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(MK_ENV2);\
 	cd $(mpfr2_bld) && \
 	$(mpfr_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -346,7 +346,7 @@ mpc2_bld := $(BLD)/mpc-$(MPC_VER)
 $(mpc2_dest) : $(mpfr2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(mpc2_dest)))))
 	(rm -fr $(mpc2_bld) && mkdir -p $(mpc2_bld) && \
-	(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(MK_ENV2);\
 	cd $(mpc2_bld) && \
 	EGREP="grep -E" \
 	$(mpc_src_dir)/configure \
@@ -363,7 +363,7 @@ ppl2_bld := $(BLD)/ppl-$(PPL_VER)
 $(ppl2_dest) : $(mpc2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(ppl2_dest)))))
 	(rm -fr $(ppl2_bld) && mkdir -p $(ppl2_bld) && \
-	(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(MK_ENV2);\
 	cd $(ppl2_bld) && \
 	$(ppl_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -384,7 +384,7 @@ cloog2_bld := $(BLD)/cloog-ppl-$(CLOOG_VER)
 $(cloog2_dest) : $(ppl2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(cloog2_dest)))))
 	(rm -fr $(cloog2_bld) && mkdir -p $(cloog2_bld) && \
-	(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(MK_ENV2);\
 	cd $(cloog2_bld) && \
 	$(cloog-ppl_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -402,7 +402,7 @@ binutils2_bld := $(BLD)/binutils-$(BINUTILS_VER)
 $(binutils2_dest) : $(cloog2_dest)
 	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(binutils2_dest)))))
 	(rm -fr $(binutils2_bld) && mkdir -p $(binutils2_bld) && \
-	(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(MK_ENV2);\
 	cd $(binutils2_bld) && \
 	$(binutils_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -416,12 +416,12 @@ $(binutils2_dest) : $(cloog2_dest)
 	$(MAKE) configure-host && $(MAKE) && $(MAKE) install && \
 	$(call TOUCH_DEST)))
 
-gcc3_dest := $(TOOLS)/.bld/gcc
+gcc3_dest := $(TOOLS)/.bld/gcc3
 gcc3_bld := $(BLD)/gcc-$(GCC_VER)
 $(gcc3_dest): $(binutils2_dest)
-	@$(call echo_cmd,,$(INFO_CONFIG $(notdir $(notdir $(gcc3_dest)))))
+	@$(call echo_cmd,,$(INFO_CONFIG),$(notdir $(notdir $(gcc3_dest))))
 	(rm -fr $(gcc3_bld) && mkdir -p $(gcc3_bld) && \
-	(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	(source $(MK)/env2.sh ; $(MK_ENV2);\
 	cd $(gcc3_bld) && \
 	$(gcc_src_dir)/configure \
 	--prefix=$(TOOLS) \
@@ -445,6 +445,87 @@ $(gcc3_dest): $(binutils2_dest)
 	$(MAKE) AS_FOR_TARGET="${AS}" LD_FOR_TARGET="${LD}" && $(MAKE) install && \
 	$(call TOUCH_DEST)))
 
-build: $(gcc3_dest)
 
+$(eval $(call prepare_source,zlib,$(ZLIB_VER),tar.bz2))
+zlib_dest := $(TOOLS)/.bld/zlib
+zlib_bld := $(zlib_src_dir)
+$(zlib_dest): $(zlib_src)
+	@$(call echo_cmd,,$(INFO_CONFIG) zlib)
+	@(source $(MK)/env2.sh ; $(MK_ENV2);\
+	cd $(zlib_bld) && \
+	$(zlib_src_dir)/configure --prefix=$(TOOLS) && \
+	$(MAKE) && make install && \
+	$(call TOUCH_DEST))
+
+$(eval $(call prepare_source,ncurses,$(NCURSES_VER),tar.gz))
+$(eval $(call patch_source,NCURSES_PATCHES,ncurses,$(NCURSES_VER)))
+ncurses_dest := $(TOOLS)/.bld/ncurses
+ncurses_bld := $(ncurses_src_dir)
+$(ncurses_dest): $(ncurses_src) $(ncurses_patched)
+	@$(call echo_cmd,,$(INFO_CONFIG) ncurses)
+	@(source $(MK)/env2.sh ; $(call MK_ENV2);\
+	cd $(ncurses_bld) && \
+	./configure --prefix=/tools \
+	--with-shared \
+    --host=$(TARGET) --build=$(HOST) \
+    --without-debug --without-ada \
+    --enable-overwrite --with-build-cc=gcc && \
+    $(MAKE) && make install && \
+    $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,bash,$(BASH_VER),tar.gz))
+$(eval $(call patch_source,BASH_PATCHES,bash,$(BASH_VER)))
+bash_dest := $(TOOLS)/.bld/bash
+bash_bld := $(bash_src_dir)
+$(bash_dest): $(bash_src) $(bash_patched)
+	@$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(bash_dest)))
+	@(source $(MK)/env2.sh ; $(MK_ENV2);\
+	cd $(bash_bld) &&\
+		echo "ac_cv_func_mmap_fixed_mapped=yes" > config.cache ;\
+		echo "ac_cv_func_strcoll_works=yes" >> config.cache ; \
+		echo "ac_cv_func_working_mktime=yes" >> config.cache ;\
+		echo "bash_cv_func_sigsetjmp=present" >> config.cache  ; \
+		echo "bash_cv_getcwd_malloc=yes" >> config.cache ; \
+		echo "bash_cv_job_control_missing=present" >> config.cache ;\
+		echo "bash_cv_printf_a_format=yes" >> config.cache ;\
+		echo "bash_cv_sys_named_pipes=present" >> config.cache ;\
+		echo "bash_cv_ulimit_maxfds=yes" >> config.cache ;\
+		echo "bash_cv_under_sys_siglist=yes" >> config.cache ;\
+		echo "bash_cv_unusable_rtsigs=no" >> config.cache ; \
+		echo "gt_cv_int_divbyzero_sigfpe=yes" >> config.cache ;\
+	./configure --prefix=$(TOOLS) \
+    --build=$(HOST) --host=$(TARGET) \
+    --without-bash-malloc --cache-file=config.cache	&& \
+    $(MAKE) && make install && \
+    ln -fsv bash $(TOOLS)/bin/sh && \
+    $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,bison,$(BISON_VER),tar.bz2))
+bison_dest := $(TOOLS)/.bld/bison
+bison_bld := $(bison_src_dir)
+$(bison_dest): $(bison_src)
+	@$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(bison_bld)))
+	@(source $(MK)/env2.sh ; $(MK_ENV2);\
+	cd $(bison_bld) &&\
+	./configure --prefix=$(TOOLS) \
+	--build=$(HOST) \
+	--host=$(TARGET) && \
+	$(MAKE) && make install && \
+	$(call TOUCH_DEST))
+
+
+$(eval $(call prepare_source,bzip2,$(BZIP2_VER),tar.gz))
+bzip2_dest := $(TOOLS)/.bld/bzip2
+bzip2_bld := $(bzip2_src_dir)
+$(bzip2_dest): $(bzip2_src)
+	@$(call echo_cmd,,$(INFO_CONFIG) $(notdir $(bzip2_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ; \
+	cd $(bzip2_bld) && \
+	cp -v Makefile{,.orig} && \
+	sed -e 's@^\(all:.*\) test@\1@g' Makefile.orig > Makefile && \
+	$(MAKE) CC="$${CC}" AR="$${AR}" RANLIB="$${RANLIB}" && \
+	make PREFIX=$(TOOLS) install && \
+	$(call TOUCH_DEST))
+
+build: $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_dest) $(bison_dest) $(bzip2_dest)
 

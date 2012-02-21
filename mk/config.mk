@@ -24,5 +24,5 @@ SRC := $(ROOT)/src
 PATCH_DIR := $(ROOT)/patches
 TAR_DIR := $(ROOT)/download
 
-
+PKG_SUFFIXES := tar.bz2 tar.xz .tar.gz
 download_list :=
