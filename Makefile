@@ -527,5 +527,278 @@ $(bzip2_dest): $(bzip2_src)
 	make PREFIX=$(TOOLS) install && \
 	$(call TOUCH_DEST))
 
-build: $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_dest) $(bison_dest) $(bzip2_dest)
+$(eval $(call prepare_source,coreutils,$(COREUTILS_VER),tar.gz))
+$(eval $(call patch_source,COREUTILS_PATCHES,coreutils,$(COREUTILS_VER)))
+coreutils_dest := $(TOOLS)/.bld/coreutils
+coreutils_bld := $(coreutils_src_dir)
+$(coreutils_dest): $(coreutils_src) $(coreutils_patched)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(coreutils_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(coreutils_bld) && \
+		touch man/uname.1 man/hostname.1 && \
+		echo "fu_cv_sys_stat_statfs2_bsize=yes" > config.cache && \
+		echo "gl_cv_func_working_mkstemp=yes" >> config.cache && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) \
+    	--enable-install-program=hostname --cache-file=config.cache && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+
+$(eval $(call prepare_source,diffutils,$(DIFFUTILS_VER),tar.gz))
+diffutils_dest := $(TOOLS)/.bld/diffutils
+diffutils_bld := $(diffutils_src_dir)
+$(diffutils_dest): $(diffutils_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(diffutils_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(diffutils_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,findutils,$(FINDUTILS_VER),tar.gz))
+findutils_dest := $(TOOLS)/.bld/findutils
+findutils_bld := $(findutils_src_dir)
+$(findutils_dest): $(findutils_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(findutils_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(findutils_bld) && \
+		echo "gl_cv_func_wcwidth_works=yes" > config.cache && \
+		echo "ac_cv_func_fnmatch_gnu=yes" >> config.cache &&\
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) --cache-file=config.cache && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,file,$(FILE_VER),tar.gz))
+file_dest := $(TOOLS)/.bld/file
+file_bld := $(file_src_dir)
+$(file_dest): $(file_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(file_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(file_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,flex,$(FLEX_VER),tar.bz2))
+$(eval $(call patch_source,FLEX_PATCHES,flex,$(FLEX_VER)))
+flex_dest := $(TOOLS)/.bld/flex
+flex_bld := $(flex_src_dir)
+$(flex_dest): $(flex_src) $(flex_patched)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(flex_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(flex_bld) && \
+		echo "ac_cv_func_malloc_0_nonnull=yes" > config.cache && \
+		echo "ac_cv_func_realloc_0_nonnull=yes" >> config.cache &&\
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) \
+    	--cache-file=config.cache && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+
+$(eval $(call prepare_source,gawk,$(GAWK_VER),tar.bz2))
+gawk_dest := $(TOOLS)/.bld/gawk
+gawk_bld := $(gawk_src_dir)
+$(gawk_dest): $(gawk_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(gawk_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(gawk_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,gettext,$(GETTEXT_VER),tar.gz))
+gettext_dest := $(TOOLS)/.bld/gettext
+gettext_bld := $(gettext_src_dir)
+$(gettext_dest): $(gettext_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(gettext_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(gettext_bld) && \
+		echo "gl_cv_func_wcwidth_works=yes" > config.cache &&\
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET)  \
+    	--disable-shared --cache-file=config.cache && \
+    	$(MAKE) && $(MAKE) check && $(MAKE) install && \
+    	install -dv src/msgfmt $(TOOLS)/bin && \
+    	$(call TOUCH_DEST))
+
+$(eval $(call prepare_source,grep,$(GREP_VER),tar.gz))
+grep_dest := $(TOOLS)/.bld/grep
+grep_bld := $(grep_src_dir)
+$(grep_dest): $(grep_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(grep_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(grep_bld) && \
+		echo "ac_cv_func_malloc_0_nonnull=yes" > config.cache && \
+		echo "ac_cv_func_realloc_0_nonnull=yes" >> config.cache && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET)  \
+    	--disable-perl-regexp \
+    	--without-included-regex \
+    	--cache-file=config.cache && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,gzip,$(GZIP_VER),tar.bz2))
+gzip_dest := $(TOOLS)/.bld/gzip
+gzip_bld := $(gzip_src_dir)
+$(gzip_dest): $(gzip_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(gzip_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(gzip_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,m4,$(M4_VER),tar.bz2))
+m4_dest := $(TOOLS)/.bld/m4
+m4_bld := $(m4_src_dir)
+$(m4_dest): $(m4_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(m4_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(m4_bld) && \
+		echo "gl_cv_func_btowc_eof=yes" > config.cache && \
+		echo "gl_cv_func_mbrtowc_incomplete_state=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_sanitycheck=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_null_arg=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_retval=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_nul_retval=yes" >> config.cache && \
+		echo "gl_cv_func_wcrtomb_retval=yes" >> config.cache && \
+		echo "gl_cv_func_wctob_works=yes" >> config.cache && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) \
+    	--cache-file=config.cache && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,make,$(MAKE_VER),tar.bz2))
+make_dest := $(TOOLS)/.bld/make
+make_bld := $(make_src_dir)
+$(make_dest): $(make_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(make_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(make_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,patch,$(PATCH_VER),tar.bz2))
+patch_dest := $(TOOLS)/.bld/patch
+patch_bld := $(patch_src_dir)
+$(patch_dest): $(patch_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(patch_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(patch_bld) && \
+		echo "ac_cv_func_strnlen_working=yes" > config.cache && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) \
+    	--cache-file=config.cache && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,sed,$(SED_VER),tar.bz2))
+sed_dest := $(TOOLS)/.bld/sed
+sed_bld := $(sed_src_dir)
+$(sed_dest): $(sed_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(sed_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(sed_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,tar,$(TAR_VER),tar.bz2))
+tar_dest := $(TOOLS)/.bld/tar
+tar_bld := $(tar_src_dir)
+$(tar_dest): $(tar_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(tar_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(tar_bld) && \
+		echo "gl_cv_func_wcwidth_works=yes" > config.cache && \
+		echo "gl_cv_func_btowc_eof=yes" >> config.cache && \
+		echo "ac_cv_func_malloc_0_nonnull=yes" >> config.cache && \
+		echo "ac_cv_func_realloc_0_nonnull=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_incomplete_state=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_nul_retval=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_null_arg=yes" >> config.cache && \
+		echo "gl_cv_func_mbrtowc_retval=yes" >> config.cache && \
+		echo "gl_cv_func_wcrtomb_retval=yes" >> config.cache && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) \
+    	--cache-file=config.cache &&\
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,texinfo,$(TEXINFO_VER),tar.gz))
+texinfo_dest := $(TOOLS)/.bld/texinfo
+texinfo_bld := $(texinfo_src_dir)
+$(texinfo_dest): $(texinfo_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(texinfo_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(texinfo_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) -C gnulib/lib  && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,vim,$(VIM_VER),tar.bz2))
+$(eval $(call patch_source,VIM_PATCHES,vim,$(VIM_VER)))
+vim_dest := $(TOOLS)/.bld/vim
+vim_bld := $(vim_src_dir)
+$(vim_dest): $(vim_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(vim_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(vim_bld) && \
+		echo "vim_cv_getcwd_broken=no" > config.cache && \
+		echo "vim_cv_memmove_handles_overlap=yes" >> config.cache && \
+		echo "vim_cv_stat_ignores_slash=no" >> config.cache && \
+		echo "vim_cv_terminfo=yes" >> config.cache && \
+		echo "vim_cv_tgent=zero" >> config.cache && \
+		echo "vim_cv_toupper_broken=no" >> conig.cache && \
+		echo "vim_cv_tty_group=world" >> config.cache && \
+		echo "ac_cv_sizeof_int=4" >> config.cache && \
+		echo "ac_cv_sizeof_long=4" >> config.cache && \
+		echo "ac_cv_sizeof_time_t=4" >> config.cache && \
+		echo "ac_cv_sizeof_off_t=4" >> config.cache && \
+		echo '#define SYS_VIMRC_FILE "$(TOOLS)/etc/vimrc"' >> src/feature.h && \
+		./configure \
+    		--build=$(HOST) --host=$(TARGET) \
+    		--prefix=$(TOOLS) \
+    		--enable-multibyte \
+    		--enable-gui=no \
+		    --disable-gtktest \
+		    --disable-xim \
+		    --with-features=normal \
+		    --disable-gpm \
+		    --without-x \
+		    --disable-netbeans \
+		    --with-tlib=ncurses && \
+    	$(MAKE) && make install && \
+    	$(call TOUCH_DEST))
+
+$(eval $(call prepare_source,xz,$(XZ_VER),tar.bz2))
+xz_dest := $(TOOLS)/.bld/xz
+xz_bld := $(xz_src_dir)
+$(xz_dest): $(xz_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(xz_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(xz_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET) && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+$(eval $(call prepare_source,util-linux,$(UTIL-LINUX_VER),tar.gz))
+UTIL-LINUX_dest := $(TOOLS)/.bld/UTIL-LINUX
+UTIL-LINUX_bld := $(UTIL-LINUX_src_dir)
+$(UTIL-LINUX_dest): $(UTIL-LINUX_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(UTIL-LINUX_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(UTIL-LINUX_bld) && \
+		./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET)  \
+    	--disable-makeinstall-chown && \
+    	$(MAKE) && make install && $(call TOUCH_DEST))
+
+
+build: $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_dest) \
+		$(bison_dest) $(bzip2_dest) $(coreutils_dest) $(diffutils_dest) \
+		$(findutils_dest) $(file_dest) $(flex_dest) $(gawk_dest) $(gettext_dest) \
+		$(grep_dest) $(m4_dest) $(make_dest) $(patch_dest) $(sed_dest) \
+		$(texinfo_dest) $(vim_dest) $(xz_dest)
+
 

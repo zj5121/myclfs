@@ -26,6 +26,7 @@ parent = $(patsubst %/,%,$(dir $(1)))
 INFO_PREP_SRC := I: Prepare source
 INFO_PATCH_SRC := I: Patch source 
 INFO_CONFIG := I: Configure
+INFO_BUILD := I: Build
 UNTAR.bz2 = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...); tar --strip=1 -jxf 
 UNTAR.gz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar --strip=1 -zxf 
 UNTAR.xz = $(call echo_cmd,-n,$(INFO_PREP_SRC) $(notdir $<) ...) ;tar --strip=1 -Jxf 
