@@ -164,6 +164,13 @@ DOWNLOAD_PKG = $$(Q)$$\(call echo_cmd\,\,"I: Downloading $$(notdir $$@)"\)\n\t$$
 
 _check_file = $(wildcard $(filter $(DOWNLOAD)/$(1),$(2)),$(1),,)
 
+comma := ,
+# $(call try_mount,proc,proc,$(BASE)/proc)
+# $1 - source dir
+# $2 - mount options
+# $3 - tgt dir
+try_mount = ((cat /proc/mounts|grep $1|grep $3 2>&1>/dev/null) || ($(call echo_cmd,,mount $2 $1 $3) && sudo mount $2 $1 $3))
+
 # $1 - package name
 # $2 - version number
 define build_tgt

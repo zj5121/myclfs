@@ -305,8 +305,11 @@ $(gcc2_dest) : $(eglibc1_dest)
 	$(MAKE) AS_FOR_TARGET="$(TARGET)-as" LD_FOR_TARGET="$(TARGET)-ld" && \
 	make install && mkdir -p $(dir $@) && touch $@))
 
+
+build_stage1: $(gcc2_dest)
+
 #############################################
-# basic system install
+# temporary system build
 
 # gmp
 gmp2_dest := $(TOOLS)/.bld/gmp
@@ -782,23 +785,67 @@ $(xz_dest): $(xz_src)
     	--build=$(HOST) --host=$(TARGET) && \
     	$(MAKE) && make install && $(call TOUCH_DEST))
 
-$(eval $(call prepare_source,util-linux,$(UTIL-LINUX_VER),tar.gz))
-UTIL-LINUX_dest := $(TOOLS)/.bld/UTIL-LINUX
-UTIL-LINUX_bld := $(UTIL-LINUX_src_dir)
-$(UTIL-LINUX_dest): $(UTIL-LINUX_src)
-	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(UTIL-LINUX_bld)))
+$(eval $(call prepare_source,util-linux,$(UTIL-LINUX_VER),tar.bz2))
+util-linux_dest := $(TOOLS)/.bld/UTIL-LINUX
+util-linux_bld := $(util-linux_src_dir)
+$(util-linux_dest): $(util-linux_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(util-linux_bld)))
 	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
-		cd $(UTIL-LINUX_bld) && \
+		cd $(util-linux_bld) && \
 		./configure --prefix=$(TOOLS) \
     	--build=$(HOST) --host=$(TARGET)  \
     	--disable-makeinstall-chown && \
     	$(MAKE) && make install && $(call TOUCH_DEST))
 
 
-build: $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_dest) \
+$(eval $(call prepare_source,e2fsprogs,$(E2FSPROG_VER),tar.gz))
+e2fsprogs_dest := $(TOOLS)/.bld/e2fsprogs
+e2fsprogs_bld := $(e2fsprogs_src_dir)
+$(e2fsprogs_dest): $(e2fsprogs_src)
+	@$(call echo_cmd,,$(INFO_BUILD) $(notdir $(e2fsprogs_bld)))
+	(source $(MK)/env2.sh ; $(MK_ENV2) ;\
+		cd $(e2fsprogs_bld) && \
+		PKG_CONFIG=true ./configure --prefix=$(TOOLS) \
+    	--build=$(HOST) --host=$(TARGET)  \
+    	--enable-elf-shlibs --disable-libblkid \
+    	--disable-libuuid --disable-fsck \
+    	--disable-uuid && \
+    	$(MAKE) LIBUUID="-luuid" STATIC_LIBUUID="-luuid" \
+    		LIBBLKID="-lblkid" STATIC_LIBBLKID="-lblkid" && \
+    	make install && make install-libs && \
+    	ln -sv $(TOOLS)/sbin/{fsck,ext2,fsck.ext3,fsck.ext4,e2fsck} $(BASE)/sbin && \
+     $(TOUCH_DEST))
+
+
+build_stage2: build_stage1 $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_dest) \
 		$(bison_dest) $(bzip2_dest) $(coreutils_dest) $(diffutils_dest) \
 		$(findutils_dest) $(file_dest) $(flex_dest) $(gawk_dest) $(gettext_dest) \
 		$(grep_dest) $(m4_dest) $(make_dest) $(patch_dest) $(sed_dest) \
-		$(texinfo_dest) $(vim_dest) $(xz_dest)
+		$(texinfo_dest) $(vim_dest) $(xz_dest) $(util-linux_dest) $(e2fsprogs_dest) \
 
+
+
+######################################################
+# basic system
+$(BASE)/.prep_fs: 
+	@$(call echo_cmd,,I: Prepare basic fs ...,,)
+	(mkdir -pv $(BASE)/{dev,proc,sys} && \
+		([ -f $(BASE)/dev/console ] && mknod -m 600 $(BASE)/dev/console c 5 1 ; echo 0 >/dev/null) && \
+		([ -f $(BASE)/dev/null ] && mknod -m 666 $(BASE)/dev/null c 1 3 ; echo 0 >/dev/null) && \
+		mkdir -p $(BASE)/dev/shm && \
+		$(call try_mount,/proc,proc,$(BASE)/proc) && \
+		$(call try_mount,/sys,-vt sysfs,$(BASE)/sys) && \
+		$(call try_mount,/dev,-v -o bind,$(BASE)/dev) && \
+		$(call try_mount,tmpfs,-F -vt tmpfs,$(BASE)/dev/shm) && \
+		$(call try_mount,devpts,-vt devpts -o gid=4$(comma)mode=620,$(BASE)/dev/pts) && \
+		$(TOUCH_DEST))
+
+build: build_stage2 $(BASE)/.prep_fs 
+
+clean_all:
+	-(sudo umount $(BASE)/dev/shm  &&\
+		sudo umount $(BASE)/dev/pts && \
+		sudo umount $(BASE)/{proc,sys,dev})
+	(sudo rm -fr $(BASE)/* && rm -fr $(SRC) && rm -fr $(BLD))
+# end of preparation before chroot build
 

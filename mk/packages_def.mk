@@ -40,7 +40,8 @@ TAR_VER := 1.26
 TEXINFO_VER := 4.13a
 VIM_VER := 7.3
 XZ_VER := 5.0.2
-UTILS-LINUX_VER := 2.19.1
+UTIL-LINUX_VER := 2.19.1
+E2FSPROG_VER := 1.41.14
 
 GCC_PATCHES := branch_update-1 specs-1
 EGLIBC_PATCHES := cross-statge1-support r13356-dl_dep_fix-1
