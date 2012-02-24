@@ -842,9 +842,11 @@ $(BASE)/.prep_fs:
 		$(TOUCH_DEST))
 
 build: build_stage2 $(BASE)/.prep_fs 
+	@([ ! -d $(BASE)/bin ] && sudo $(MK)/prep_dirs $(BASE) ; true)
 	@$(call echo_cmd,,I: ======= GO INTO CHROOT NOW =======)
 	@(r=`stat -c %u $(TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(TOOLS)/ ; true))
 	@(r=`stat -c %u $(CROSS_TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(CROSS_TOOLS)/ ; true))
+	@(r=`stat -c %u $(BASE)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(BASE)/{bin,sbin,boot,etc,opt,root,home,srv,usr,var,lib,media,mnt,tmp}; true))
 	@(exec $(call chroot-run,$(TOOLS)/bin/bash --login +h))
 
 clean_all:
