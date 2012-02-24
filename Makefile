@@ -813,6 +813,7 @@ $(e2fsprogs_dest): $(e2fsprogs_src)
     	$(MAKE) LIBUUID="-luuid" STATIC_LIBUUID="-luuid" \
     		LIBBLKID="-lblkid" STATIC_LIBBLKID="-lblkid" && \
     	make install && make install-libs && \
+    	mkdir -p $(BASE)/sbin &&\
     	ln -sv $(TOOLS)/sbin/{fsck,ext2,fsck.ext3,fsck.ext4,e2fsck} $(BASE)/sbin && \
      $(TOUCH_DEST))
 
@@ -833,7 +834,7 @@ $(BASE)/.prep_fs:
 		([ -f $(BASE)/dev/console ] && mknod -m 600 $(BASE)/dev/console c 5 1 ; echo 0 >/dev/null) && \
 		([ -f $(BASE)/dev/null ] && mknod -m 666 $(BASE)/dev/null c 1 3 ; echo 0 >/dev/null) && \
 		mkdir -p $(BASE)/dev/shm && \
-		$(call try_mount,/proc,proc,$(BASE)/proc) && \
+		$(call try_mount,/proc,-vt proc,$(BASE)/proc) && \
 		$(call try_mount,/sys,-vt sysfs,$(BASE)/sys) && \
 		$(call try_mount,/dev,-v -o bind,$(BASE)/dev) && \
 		$(call try_mount,tmpfs,-F -vt tmpfs,$(BASE)/dev/shm) && \
@@ -841,6 +842,10 @@ $(BASE)/.prep_fs:
 		$(TOUCH_DEST))
 
 build: build_stage2 $(BASE)/.prep_fs 
+	@$(call echo_cmd,,I: ======= GO INTO CHROOT NOW =======)
+	@(r=`stat -c %u $(TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(TOOLS)/ ; true))
+	@(r=`stat -c %u $(CROSS_TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(CROSS_TOOLS)/ ; true))
+	@(exec $(call chroot-run,$(TOOLS)/bin/bash --login +h))
 
 clean_all:
 	-(sudo umount $(BASE)/dev/shm  &&\

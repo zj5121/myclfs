@@ -171,6 +171,9 @@ comma := ,
 # $3 - tgt dir
 try_mount = ((cat /proc/mounts|grep $1|grep $3 2>&1>/dev/null) || ($(call echo_cmd,,mount $2 $1 $3) && sudo mount $2 $1 $3))
 
+# $1 - command to run
+chroot-run = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i HOME=/root TERM="${TERM}" PS1='\u:\w\$$ ' PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin $1
+
 # $1 - package name
 # $2 - version number
 define build_tgt
