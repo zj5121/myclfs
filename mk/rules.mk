@@ -50,14 +50,15 @@ PATCH_TGTS :=
 # $4 = subname, optional
 # export var: $(1)_src $(1)_tar
 define prepare_source
-$(1)$(if $(4),-$(4),)_untared := $(SRC)/$(1)-$(2)/.$(1)-$(if $(4),$(4)-,)$(2)_untared
-$(1)$(if $(4),-$(4),)_tar := $(TAR_DIR)/$(1)-$(if $(4),$(4)-,)$(2).$(3)
+$(1)$(if $(4),-$(4),)_untared := $(SRC)/$(1)$(if $(2),-$(2),)/.$(1)$(if $(4),-$(4),)$(if $(2),-$(2),)_untared
+$(1)$(if $(4),-$(4),)_tar := $(TAR_DIR)/$(1)$(if $(4),-$(4),)$(if $(2),-$(2),).$(3)
+#$$(warning $(1)$(if $(2),-$(2),))
 $$($(1)$(if $(4),-$(4),)_untared): $$($(1)$(if $(4),-$(4),)_tar)
-	@mkdir -p $(SRC)/$(1)-$(2)
-	$(call UNTARCMD,$(1)-$(2))
+	@mkdir -p $(SRC)/$(1)$(if $(2),-$(2),)
+	$(call UNTARCMD,$(1)$(if $(2),-$(2),))
 
 $(1)_src := $$($(1)_src) $$($(1)$(if $(4),-$(4),)_untared)
-$$(if $$($(1)_src_dir),,$$(eval $(1)_src_dir := $(SRC)/$(1)-$(2)))
+$$(if $$($(1)_src_dir),,$$(eval $(1)_src_dir := $(SRC)/$(1)$(if $(2),-$(2),)))
 #$$(warning $(1)_src_dir = $$($(1)_src_dir))
 #UNTAR_TGTS = $(SRC)/.$(notdir $(1)) $(UNTAR_TGTS)
 endef
@@ -169,10 +170,14 @@ comma := ,
 # $1 - source dir
 # $2 - mount options
 # $3 - tgt dir
-try_mount = ((cat /proc/mounts|grep $1|grep $3 2>&1>/dev/null) || ($(call echo_cmd,,mount $2 $1 $3) && sudo mount $2 $1 $3))
+try_mount = ((cat /proc/mounts|awk '{print $$2'}|grep $3|grep ^$3$$ 2>&1>/dev/null) || ($(call echo_cmd,,mount $2 $1 $3) && sudo mkdir -p $3 && sudo mount $2 $1 $3))
 
-# $1 - command to run
-chroot-run = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i HOME=/root TERM="${TERM}" PS1='\u:\w\$$ ' PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin $1
+sharp := \#
+# $1 - goto chroot env
+go-chroot = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i HOME=/root TERM="${TERM}" PS1='\u:\W $(sharp) ' PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin /tools/bin/bash --login +h
+
+# $1 - run command in chroot
+chroot-run = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i HOME=/root TERM="${TERM}" PS1='\u:\W $(sharp) ' BASE=/chroot-bld PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin sh -c '$1'
 
 # $1 - package name
 # $2 - version number

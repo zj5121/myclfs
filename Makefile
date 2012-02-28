@@ -24,7 +24,7 @@ $(call get_clfs_packages,$(clfs_htmls),download_list)
 
 htmls: $(clfs_htmls)
 
-download_pkgs : htmls $(foreach f,$(download_list),$($f))
+download_pkgs : prep htmls $(foreach f,$(download_list),$($f))
 
 prep: 
 	$(Q)(if [ ! -d $(DOWNLOAD) ] ; then install -d -v $(DOWNLOAD); fi )
@@ -42,7 +42,7 @@ prep:
 $(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
 gmp_dest := $(CROSS_TOOLS)/.bld/gmp
 gmp_bld  := $(BLD)/gmp-$(GMP_VER)
-$(gmp_dest): $(prep) $(gmp_src) 
+$(gmp_dest): $(gmp_src) 
 	(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
 	(source $(MK)/env.sh ; $(call MK_ENV1);\
 	cd $(gmp_bld) && \
@@ -823,36 +823,38 @@ build_stage2: build_stage1 $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_des
 		$(findutils_dest) $(file_dest) $(flex_dest) $(gawk_dest) $(gettext_dest) \
 		$(grep_dest) $(m4_dest) $(make_dest) $(patch_dest) $(sed_dest) \
 		$(texinfo_dest) $(vim_dest) $(xz_dest) $(util-linux_dest) $(e2fsprogs_dest) \
+		$(tcl_dest) $(expect_dest) $(dejagnu_dest) 
 
 
 
 ######################################################
-# basic system
+# prepare chroot
 $(BASE)/.prep_fs: 
 	@$(call echo_cmd,,I: Prepare basic fs ...,,)
 	(mkdir -pv $(BASE)/{dev,proc,sys} && \
-		([ -f $(BASE)/dev/console ] && mknod -m 600 $(BASE)/dev/console c 5 1 ; echo 0 >/dev/null) && \
-		([ -f $(BASE)/dev/null ] && mknod -m 666 $(BASE)/dev/null c 1 3 ; echo 0 >/dev/null) && \
+		([ -f $(BASE)/dev/console ] && mknod -m 600 $(BASE)/dev/console c 5 1 ; true) && \
+		([ -f $(BASE)/dev/null ] && mknod -m 666 $(BASE)/dev/null c 1 3 ; true) && \
 		mkdir -p $(BASE)/dev/shm && \
 		$(call try_mount,/proc,-vt proc,$(BASE)/proc) && \
 		$(call try_mount,/sys,-vt sysfs,$(BASE)/sys) && \
 		$(call try_mount,/dev,-v -o bind,$(BASE)/dev) && \
 		$(call try_mount,tmpfs,-F -vt tmpfs,$(BASE)/dev/shm) && \
-		$(call try_mount,devpts,-vt devpts -o gid=4$(comma)mode=620,$(BASE)/dev/pts) && \
-		$(TOUCH_DEST))
-
-build: build_stage2 $(BASE)/.prep_fs 
-	@([ ! -d $(BASE)/bin ] && sudo $(MK)/prep_dirs $(BASE) ; true)
-	@$(call echo_cmd,,I: ======= GO INTO CHROOT NOW =======)
+		$(call try_mount,devpts,-vt devpts -o gid=4$(comma)mode=620,$(BASE)/dev/pts))
+		$(call try_mount,$(CURDIR),-o bind,$(NEWBASE))
+	@([ ! -f $(BASE)/bin/sh ] && sudo $(MK)/prep_dirs $(BASE) ; true)
 	@(r=`stat -c %u $(TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(TOOLS)/ ; true))
 	@(r=`stat -c %u $(CROSS_TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(CROSS_TOOLS)/ ; true))
 	@(r=`stat -c %u $(BASE)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(BASE)/{bin,sbin,boot,etc,opt,root,home,srv,usr,var,lib,media,mnt,tmp}; true))
-	@(exec $(call chroot-run,$(TOOLS)/bin/bash --login +h))
+	@($(TOUCH_DEST))
 
-clean_all:
-	-(sudo umount $(BASE)/dev/shm  &&\
-		sudo umount $(BASE)/dev/pts && \
-		sudo umount $(BASE)/{proc,sys,dev})
-	(sudo rm -fr $(BASE)/* && rm -fr $(SRC) && rm -fr $(BLD))
-# end of preparation before chroot build
 
+
+build: build_stage2 $(BASE)/.prep_fs 
+
+chroot_build: build_stage2 $(BASE)/.prep_fs 
+	@$(call echo_cmd,,======== GO INTO CHROOT BUILD ========)
+	#($(call chroot-run,which make ;cd $${BASE}; make -f Makefile.root))
+	$(go-chroot)
+
+umount:
+	(sudo umount -f $(NEWBASE) $(BASE)/{proc,sys,dev/shm,dev/pts,dev})

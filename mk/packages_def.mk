@@ -42,6 +42,10 @@ VIM_VER := 7.3
 XZ_VER := 5.0.2
 UTIL-LINUX_VER := 2.19.1
 E2FSPROG_VER := 1.41.14
+TCL_VER := 8.5.9
+EXPECT_VER := 5.45
+DEJAGNU_VER := 1.5
+PERL_VER := 5.14.0
 
 GCC_PATCHES := branch_update-1 specs-1
 EGLIBC_PATCHES := cross-statge1-support r13356-dl_dep_fix-1
@@ -50,6 +54,7 @@ BASH_PATCHES := branch_update-2
 COREUTILS_PATCHES := uname-1
 FLEX_PATCHES := gcc44-1
 VIM_PATCHES := branch_update-2
+PERL_PATCHES := libc-1
 
 gcc_patched :=
 eglibc_patched :=
