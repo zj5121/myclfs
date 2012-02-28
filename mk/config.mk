@@ -8,7 +8,7 @@ NR_CPU := $(shell cat /proc/cpuinfo|grep processor|wc -l)
 
 ifeq ($(IS_CHROOT),y)
 MAKE := make
-BASE := $(curdir)/chroot-bld
+BASE := /chroot-bld
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin:/tools/sbin
 else
 MAKE := make -j$(NR_CPU)

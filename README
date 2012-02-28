@@ -1,1 +1,10 @@
+My Automatic clfs
+==================
+
+The purpose is to make a automatic CLFS build system.
+
+1. build chroot enviroment
+
+2. build target packages in chroot
+   the final package is RPM packed.
 

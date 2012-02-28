@@ -821,9 +821,8 @@ $(e2fsprogs_dest): $(e2fsprogs_src)
 build_stage2: build_stage1 $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_dest) \
 		$(bison_dest) $(bzip2_dest) $(coreutils_dest) $(diffutils_dest) \
 		$(findutils_dest) $(file_dest) $(flex_dest) $(gawk_dest) $(gettext_dest) \
-		$(grep_dest) $(m4_dest) $(make_dest) $(patch_dest) $(sed_dest) \
-		$(texinfo_dest) $(vim_dest) $(xz_dest) $(util-linux_dest) $(e2fsprogs_dest) \
-		$(tcl_dest) $(expect_dest) $(dejagnu_dest) 
+		$(grep_dest) $(m4_dest) $(make_dest) $(patch_dest) $(tar_dest) $(sed_dest) \
+		$(texinfo_dest) $(vim_dest) $(xz_dest) $(util-linux_dest) $(e2fsprogs_dest) 
 
 
 
