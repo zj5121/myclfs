@@ -46,6 +46,7 @@ TCL_VER := 8.5.9
 EXPECT_VER := 5.45
 DEJAGNU_VER := 1.5
 PERL_VER := 5.14.0
+MAN-PAGES_VER := 3.32
 
 GCC_PATCHES := branch_update-1 specs-1
 EGLIBC_PATCHES := cross-statge1-support r13356-dl_dep_fix-1

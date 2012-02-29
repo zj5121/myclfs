@@ -42,6 +42,7 @@ prep:
 $(eval $(call prepare_source,gmp,$(GMP_VER),tar.bz2))
 gmp_dest := $(CROSS_TOOLS)/.bld/gmp
 gmp_bld  := $(BLD)/gmp-$(GMP_VER)
+stage1_ := $(gmp_dest) $(stage1_) 
 $(gmp_dest): $(gmp_src) 
 	(rm -fr $(gmp_bld) && mkdir -p $(gmp_bld) && \
 	(source $(MK)/env.sh ; $(call MK_ENV1);\
@@ -58,6 +59,7 @@ $(eval $(call prepare_source,mpfr,$(MPFR_VER),tar.bz2))
 #$(eval $(call patch_source,MPFR_PATCHES,mpfr,3.1.0))
 mpfr_dest := $(CROSS_TOOLS)/.bld/mpfr
 mpfr_bld  := $(BLD)/mpfr-$(MPFR_VER)
+stage1_ := $(mpfr_dest) $(stage1_) 
 $(mpfr_dest): $(mpfr_src) $(gmp_dest)
 	(rm -fr $(mpfr_bld) && mkdir -p $(mpfr_bld) &&\
 	(source $(MK)/env.sh ; $(call MK_ENV1); \
@@ -73,6 +75,7 @@ $(mpfr_dest): $(mpfr_src) $(gmp_dest)
 $(eval $(call prepare_source,mpc,$(MPC_VER),tar.gz))
 mpc_dest := $(CROSS_TOOLS)/.bld/mpc
 mpc_bld := $(BLD)/mpc-$(MPC_VER)
+stage1_ := $(mpc_dest) $(stage1_) 
 $(mpc_dest): $(mpc_src) $(mpfr_dest) $(gmp_dest)
 	@($(call echo_cmd,,$(INFO_CONFIG) $(notdir $(notdir $(mpc_bld)))))
 	@(rm -fr $(mpc_bld) && mkdir -p $(mpc_bld) &&\
@@ -821,7 +824,7 @@ $(e2fsprogs_dest): $(e2fsprogs_src)
 build_stage2: build_stage1 $(gcc3_dest)  $(zlib_dest) $(ncurses_dest) $(bash_dest) \
 		$(bison_dest) $(bzip2_dest) $(coreutils_dest) $(diffutils_dest) \
 		$(findutils_dest) $(file_dest) $(flex_dest) $(gawk_dest) $(gettext_dest) \
-		$(grep_dest) $(m4_dest) $(make_dest) $(patch_dest) $(tar_dest) $(sed_dest) \
+		$(grep_dest) $(m4_dest) $(make_dest) $(patch_dest) $(gzip_dest) $(tar_dest) $(sed_dest) \
 		$(texinfo_dest) $(vim_dest) $(xz_dest) $(util-linux_dest) $(e2fsprogs_dest) 
 
 
@@ -841,9 +844,9 @@ $(BASE)/.prep_fs:
 		$(call try_mount,devpts,-vt devpts -o gid=4$(comma)mode=620,$(BASE)/dev/pts))
 		$(call try_mount,$(CURDIR),-o bind,$(NEWBASE))
 	@([ ! -f $(BASE)/bin/sh ] && sudo $(MK)/prep_dirs $(BASE) ; true)
-	@(r=`stat -c %u $(TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(TOOLS)/ ; true))
-	@(r=`stat -c %u $(CROSS_TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(CROSS_TOOLS)/ ; true))
-	@(r=`stat -c %u $(BASE)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(BASE)/{bin,sbin,boot,etc,opt,root,home,srv,usr,var,lib,media,mnt,tmp}; true))
+	#@(r=`stat -c %u $(TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(TOOLS)/ ; true))
+	#@(r=`stat -c %u $(CROSS_TOOLS)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(CROSS_TOOLS)/ ; true))
+	#@(r=`stat -c %u $(BASE)/bin` && ([ $$r -ne 0 ] && sudo chown -Rv 0:0 $(BASE)/{bin,sbin,boot,etc,opt,root,home,srv,usr,var,lib,media,mnt,tmp}; true))
 	@($(TOUCH_DEST))
 
 
@@ -852,8 +855,12 @@ build: build_stage2 $(BASE)/.prep_fs
 
 chroot_build: build_stage2 $(BASE)/.prep_fs 
 	@$(call echo_cmd,,======== GO INTO CHROOT BUILD ========)
-	#($(call chroot-run,which make ;cd $${BASE}; make -f Makefile.root))
+	($(call chroot-run,cd $${BASE}; make -f ./Makefile.chroot))
+
+go_chroot:
 	$(go-chroot)
 
 umount:
-	(sudo umount -f $(NEWBASE) $(BASE)/{proc,sys,dev/shm,dev/pts,dev})
+	-sudo umount -f $(BASE)/{proc,sys,dev/shm,dev/pts,dev}
+	-sudo umount -f $(NEWBASE)
+	-rm $(BASE)/.prep_fs
