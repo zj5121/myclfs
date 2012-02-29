@@ -643,7 +643,7 @@ $(grep_dest): $(grep_src)
     	--cache-file=config.cache && \
     	$(MAKE) && make install && $(call TOUCH_DEST))
 
-$(eval $(call prepare_source,gzip,$(GZIP_VER),tar.bz2))
+$(eval $(call prepare_source,gzip,$(GZIP_VER),tar.gz))
 gzip_dest := $(TOOLS)/.bld/gzip
 gzip_bld := $(gzip_src_dir)
 $(gzip_dest): $(gzip_src)
