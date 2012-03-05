@@ -27,12 +27,12 @@ prep:
 	@(if [ ! -d $(DOWNLOAD) ] ; then install -d -v $(DOWNLOAD); fi )
 	@(if [ ! -d $(BASE) ] ; then install -d -v $(BASE); fi)
 	@(if [ ! -d $(BASE)$(CROSS_TOOLS)/bin ] ; then \
-		install -d -v $(BASE)$(CROSS_TOOLS)/bin ; fi)
+		install -d -v $(BASE)$(CROSS_TOOLS)/{bin,include,lib,sbin} ; fi)
 	@(if [ ! -h $(CROSS_TOOLS) ]; then \
 		sudo rm -fr $(CROSS_TOOLS); \
 		sudo ln -f -s $(BASE)$(CROSS_TOOLS) / ; fi)
 	@(if [ ! -d $(BASE)$(TOOLS)/bin ] ; then \
-		install -dv $(BASE)$(TOOLS)/bin ; fi)
+		install -dv $(BASE)$(TOOLS)/{bin,include,lib,sbin} ; fi)
 	@(if [ ! -h $(TOOLS) ]; then \
 		sudo rm -fr $(TOOLS) ; \
 		sudo ln -fsv $(BASE)$(TOOLS) / ; fi)

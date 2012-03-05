@@ -22,7 +22,6 @@ endif
 
 # inflat pkg file
 $(eval $(call prepare_source,$(NAME),$(VERSION),$(PKG_SUFFIX)))
-$(eval $(call patch_source,$(PATCHES),$(NAME),$(VERSION)))
 
 $(NAME)_preconfig := $(preconfigcmd)
 $(NAME)_configcmd := $(configcmd)
@@ -34,6 +33,7 @@ $(NAME)_postinstallcmd := $(postinstallcmd)
 # build target
 ifeq ($(PASS1),y)
 $(NAME)_1_deps := $(foreach d,$(DEPS),$(d)_1)
+$(eval $(call patch_source,$(PASS1_PATCHES),$(NAME),$(VERSION)))
 $(eval $(call build_tgt_pass1,$(NAME),$(VERSION)))
 
 else

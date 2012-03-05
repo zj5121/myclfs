@@ -193,7 +193,7 @@ $(1)_1_dest := $$(CROSS_TOOLS)/.bld/$(1)_1
 $(1)_1_bld := $$(BLD)/$(1)-$(2)
 _$(1)_1_deps := $$(foreach d,$($(1)_1_deps),$$(dir $$($(1)_1_dest))$$(d))
 PASS1_TGTS := $$($(1)_1_dest) $$(PASS1_TGTS)
-#$$(warning $(1)=$$($(1)_preconfig))
+$$(warning $(1)=$$($(1)_preconfig))
 $$($(1)_1_dest): $$($(1)_src) $$($(1)_patch_dest) $$(_$(1)_1_deps) 
 	(rm -fr $$($(1)_1_bld) && mkdir -p $$($(1)_1_bld) && \
 			(($$(if $$($(1)_preconfig),$$($(1)_preconfig),true))&&\

@@ -8,7 +8,7 @@ clfs_files	:=  packages.html http://cross-lfs.org/view/svn/x86/materials/package
 				
 				
 
-PACKAGES := linux file m4 ncurses gmp mpfr mpc ppl cloog
+PACKAGES := linux file m4 ncurses gmp mpfr mpc ppl cloog binutils gcc eglibc
 
 LINUX_VER := 2.6.39
 BINUTILS_VER := 2.21.1a
