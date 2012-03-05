@@ -1,12 +1,14 @@
 
-PACKAGES = $(wildcard $(TAR_DIR)/*.bz2) $(wildcard $(TAR_DIR)/*.gz) $(wildcard $(TAR_DIR)/*.xz)
-PATCHES = $(wildcard $(PATCH_DIR)/*.patch)
+PACKAGES_ = $(wildcard $(TAR_DIR)/*.bz2) $(wildcard $(TAR_DIR)/*.gz) $(wildcard $(TAR_DIR)/*.xz)
+#PATCHES = $(wildcard $(PATCH_DIR)/*.patch)
 
 clfs_files	:=  packages.html http://cross-lfs.org/view/svn/x86/materials/packages.html \
 				patches.html http://cross-lfs.org/view/svn/x86/materials/patches.html \
 				patches-x86.html http://cross-lfs.org/view/svn/x86/materials/patches-x86.html
 				
 				
+
+PACKAGES := linux file m4 ncurses gmp mpfr mpc ppl cloog
 
 LINUX_VER := 2.6.39
 BINUTILS_VER := 2.21.1a
@@ -50,7 +52,7 @@ MAN-PAGES_VER := 3.32
 
 GCC_PATCHES := branch_update-1 specs-1
 EGLIBC_PATCHES := cross-statge1-support r13356-dl_dep_fix-1
-NCURSES_PATCHES := bash_fix-1
+#NCURSES_PATCHES := bash_fix-1
 BASH_PATCHES := branch_update-2
 COREUTILS_PATCHES := uname-1
 FLEX_PATCHES := gcc44-1

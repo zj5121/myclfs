@@ -1,0 +1,39 @@
+#!/bin/sh
+if [ $# -lt 2 ] && [ "x$1" == "x" ] ; then
+    exit 1;
+fi
+mkdir -pv $1/{bin,boot,dev,{etc/,}opt,home,lib,mnt}
+mkdir -pv $1/{proc,media/{floppy,cdrom},sbin,srv,sys}
+mkdir -pv $1/var/{lock,log,mail,run,spool}
+mkdir -pv $1/var/{opt,cache,lib/{misc,locate},local}
+install -dv -m 0750 $1/root
+install -dv -m 1777 {$1/var,$1}/tmp
+mkdir -pv $1/usr/{,local/}{bin,include,lib,sbin,src}
+mkdir -pv $1/usr/{,local/}share/{doc,info,locale,man}
+mkdir -pv $1/usr/{,local/}share/{misc,terminfo,zoneinfo}
+mkdir -pv $1/usr/{,local/}share/man/man{1..8}
+for dir in $1/usr{,/local}; do
+  ln -fsv share/{man,doc,info} $dir
+done
+ln -fsv /tools/bin/{bash,cat,echo,grep,pwd,stty} $1/bin
+ln -fsv /tools/bin/file $1/usr/bin
+ln -fsv /tools/lib/libgcc_s.so{,.1} $1/usr/lib
+ln -fsv /tools/lib/libstd* $1/usr/lib
+ln -fsv bash $1/bin/sh
+ln -fsv /tools/bin/tar $1/bin/tar
+
+cat > $1/etc/passwd << "EOF"
+root::0:0:root:/root:/bin/bash
+EOF
+cat > $1/etc/group << "EOF"
+root::0:
+EOF
+cat > $1/root/.bash_profile <<"EOF"
+export PS1='[b32:\W] \# '
+EOF
+
+touch $1/var/run/utmp $1/var/log/{btmp,lastlog,wtmp}
+chgrp -v utmp $1/var/run/utmp $1/var/log/lastlog
+chmod -v 664 $1/var/run/utmp $1/var/log/lastlog
+chmod -v 600 $1/var/log/btmp
+
