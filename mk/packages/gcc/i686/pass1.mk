@@ -22,6 +22,8 @@ configcmd := AR=ar LDFLAGS="-Wl,-rpath,$(CROSS_TOOLS)/lib" \
 		  --disable-threads --enable-languages=c --disable-multilib \
 		  --enable-cloog-backend=isl
 
+deps := binutils mpc ppl gmp mpc mpfr
+
 makecmd := make all-gcc all-target-libgcc
 
 installcmd := make install-gcc install-target-libgcc

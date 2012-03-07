@@ -14,6 +14,8 @@ installcmd := make install
 
 postinstallcmd := 
 
+deps := gmp
+
 include $(MK)/footer.mk
 
 

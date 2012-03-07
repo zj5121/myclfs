@@ -28,14 +28,14 @@ INFO_PREP_SRC := I: Prepare source
 INFO_PATCH_SRC := I: Patch source 
 INFO_CONFIG := I: Configure
 INFO_BUILD := I: Build
-PV := $(shell which pv &> /dev/null && echo pv || echo cat)
+PV := $(shell which pv 2>&1 > /dev/null && echo pv || echo cat)
 UNTAR.bz2 = $(call echo_cmd,,$(INFO_PREP_SRC) $(notdir $<) ...); $(PV) $< | tar --strip=1 -jx 
 UNTAR.gz  = $(call echo_cmd,,$(INFO_PREP_SRC) $(notdir $<) ...); $(PV) $< | tar --strip=1 -zx 
 UNTAR.xz  = $(call echo_cmd,,$(INFO_PREP_SRC) $(notdir $<) ...); $(PV) $< | tar --strip=1 -Jx 
 
 # $1 = src dest dir
 define UNTARCMD
-@(mkdir -p $(SRC)/$(1) && $$(UNTAR$$(suffix $$<)) -C $(SRC)/$(1) && touch $$@ )
+(mkdir -p $(SRC)/$(1) && $$(UNTAR$$(suffix $$<)) -C $(SRC)/$(1) && touch $$@ )
 endef
 
 PATCH_ = $(call echo_cmd,-n,$(INFO_PATCH_SRC) $(notdir $<) ...); patch -d $(dir $@) -i $< -p1 2>&1 >/dev/null
@@ -118,7 +118,8 @@ endef
 
 TOUCH_DEST = mkdir -p $(dir $@) && touch $@
 
-_get_file := $(shell which curl &> /dev/null && echo curl -L -o ||echo wget --no-check-certificate -O)
+_get_file := $(shell which curl 2>&1 >/dev/null && echo curl -L -o || echo wget --no-check-certificate -O)
+$(waring $(_get_file))
 
 # $1 - target file
 # $2 - url
@@ -192,6 +193,7 @@ $(1)_SRC := $$(_src_dir)
 $(1)_1_dest := $$(CROSS_TOOLS)/.bld/$(1)_1
 $(1)_1_bld := $$(BLD)/$(1)-$(2)
 _$(1)_1_deps := $$(foreach d,$($(1)_1_deps),$$(dir $$($(1)_1_dest))$$(d))
+$(warning $(1) deps:=$(_$(1)_1_deps))
 PASS1_TGTS := $$($(1)_1_dest) $$(PASS1_TGTS)
 $$(warning $(1)=$$($(1)_preconfig))
 $$($(1)_1_dest): $$($(1)_src) $$($(1)_patch_dest) $$(_$(1)_1_deps) 
@@ -229,7 +231,7 @@ define download_patch_file
 $(NAME)_patch_file := $(DOWNLOAD)/$(1)
 $$($(NAME)_patch_file):
 	@$$(call echo_cmd,-n,Fetch $(2) --> $$@ ... ,,)
-	@($(_get_file) $$@ $(2) && touch $$@; $\\
+	($(_get_file) $$@ $(2) && touch $$@; $\\
 		if [ "x$$$$?" == "x0" ]; then $\\
 			grep "Not Found" $$@ 2>&1 >/dev/null && $\\
 			$$(call echo_err,,Failed) && rm -fr $$@ && exit 1; $\\

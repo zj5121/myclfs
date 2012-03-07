@@ -24,6 +24,8 @@ makecmd := make
 
 installcmd := make install inst_vardbdir=$(TOOLS)/var/db
 
+deps := gcc
+
 include $(MK)/footer.mk
 
 

@@ -18,6 +18,8 @@ makecmd := $(MAKE)
 
 installcmd := make install
 
+deps := gmp mpc mpfr cloog
+
 include $(MK)/footer.mk
 
 

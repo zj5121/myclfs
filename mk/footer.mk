@@ -32,7 +32,7 @@ $(NAME)_postinstallcmd := $(postinstallcmd)
 
 # build target
 ifeq ($(PASS1),y)
-$(NAME)_1_deps := $(foreach d,$(DEPS),$(d)_1)
+$(NAME)_1_deps := $(foreach d,$(deps),$(d)_1)
 $(eval $(call patch_source,$(PASS1_PATCHES),$(NAME),$(VERSION)))
 $(eval $(call build_tgt_pass1,$(NAME),$(VERSION)))
 

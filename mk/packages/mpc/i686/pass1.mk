@@ -13,6 +13,7 @@ makecmd := $(MAKE)
 
 installcmd := make install
 
+deps := gmp mpfr
 
 include $(MK)/footer.mk
 

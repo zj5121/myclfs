@@ -17,6 +17,8 @@ makecmd := $(MAKE)
 
 installcmd := make install
 
+deps := gmp mpc mpfr ppl
+
 include $(MK)/footer.mk
 
 
