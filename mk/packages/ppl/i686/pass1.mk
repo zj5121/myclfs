@@ -2,7 +2,7 @@
 # makefile for pass1
 #
 
-PASS1 := y
+PASS := 1
 
 configcmd := CPPFLAGS="-I$(CROSS_TOOLS)/include" \
 		LDFLAGS="-Wl,-rpath,$(CROSS_TOOLS)/lib" \
@@ -18,7 +18,6 @@ makecmd := $(MAKE)
 
 installcmd := make install
 
-deps := gmp mpc mpfr cloog
 
 include $(MK)/footer.mk
 

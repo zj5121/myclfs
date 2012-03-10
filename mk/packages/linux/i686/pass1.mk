@@ -2,7 +2,7 @@
 # makefile for pass1
 #
 
-PASS1 := y
+PASS := 1
 
 preconfigcmd := $(call copy_dir_clean,$(_src_dir),$(_bld_dir))
 configcmd := install -dv $(TOOLS)/include

@@ -2,7 +2,7 @@
 # makefile for pass1
 #
 
-PASS := 1
+PASS := 2
 
 preconfigcmd := cd $(_src_dir) && (echo -en '\#undef STANDARD_INCLUDE_DIR\n\#define STANDARD_INCLUDE_DIR "$(TOOLS)/include/"\n\n' >> gcc/config/linux.h ;\
 		echo -en '\n\#undef STANDARD_STARTFILE_PREFIX_1\n\#define STANDARD_STARTFILE_PREFIX_1 "$(TOOLS)/lib/"\n' >> gcc/config/linux.h; \
@@ -22,11 +22,11 @@ configcmd := AR=ar LDFLAGS="-Wl,-rpath,$(CROSS_TOOLS)/lib" \
 		  --disable-threads --enable-languages=c --disable-multilib \
 		  --enable-cloog-backend=isl
 
+deps := binutils mpc ppl gmp mpc mpfr
 
 makecmd := make all-gcc all-target-libgcc
 
 installcmd := make install-gcc install-target-libgcc
 
 include $(MK)/footer.mk
-
 

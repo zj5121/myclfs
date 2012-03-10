@@ -7,7 +7,7 @@ NAME := ppl
 VERSION := 0.11.2
 PKG_SUFFIX := tar.bz2
 PKG_NAME := $(_pkg_name)
-DEPS := gmp
+DEPS := gmp mpc mpfr
 
 MD5SUM := c24429e6c3bc97d45976a63f40f489a1
 

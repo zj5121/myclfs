@@ -2,7 +2,7 @@
 # makefile for pass1
 #
 
-PASS1 := y
+PASS := 1
 
 configcmd := CPPFLAGS="-fexceptions" $(_src_dir)/configure \
 			--prefix=$(CROSS_TOOLS) \
@@ -13,6 +13,8 @@ makecmd := $(MAKE)
 installcmd := make install
 
 postinstallcmd := $(MAKE) check
+
+deps := linux
 
 include $(MK)/footer.mk
 
