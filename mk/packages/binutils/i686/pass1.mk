@@ -2,7 +2,7 @@
 # makefile for pass1
 #
 
-PASS1 := y
+PASS := 1
 
 preconfigcmd := 
 
@@ -15,8 +15,6 @@ configcmd := AR=ar AS=as $(_src_dir)/configure \
 makecmd := make configure-host && $(MAKE)
 
 installcmd := make install && cp -v $(_src_dir)/include/libiberty.h $(TOOLS)/include
-
-deps := cloog
 
 include $(MK)/footer.mk
 

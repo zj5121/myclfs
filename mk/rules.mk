@@ -35,12 +35,7 @@ UNTAR.xz  = $(call echo_cmd,,$(INFO_PREP_SRC) $(notdir $<) ...); $(PV) $< | tar 
 
 # $1 = src dest dir
 define UNTARCMD
-(mkdir -p $(SRC)/$(1) && $$(UNTAR$$(suffix $$<)) -C $(SRC)/$(1) && touch $$@ )
-endef
-
-PATCH_ = $(call echo_cmd,-n,$(INFO_PATCH_SRC) $(notdir $<) ...); patch -d $(dir $@) -i $< -p1 2>&1 >/dev/null
-define PATCHCMD
-($(PATCH_) && touch $@ && $(call echo_cmd,, done))
+(mkdir -p $(1) && $$(UNTAR$$(suffix $$<)) -C $(1) && mkdir -p $$(dir $$@) && touch $$@ )
 endef
 
 UNTAR_TGTS :=
@@ -55,38 +50,54 @@ PASS1_ENV = env -i HOME=$(HOME) TERM=$(TERM) LC_ALL=POSIX PATH=$(CROSS_TOOLS)/bi
 # $2 = version
 # $3 = suffix
 # $4 = subname, optional
-# export var: $(1)_src $(1)_tar
+# $5 = pass#
+# export var: $(1)_src-$(5) $(1)_srcfile-$(5)
 define prepare_source
-$(1)$(if $(4),-$(4),)_untared := $(SRC)/$(1)$(if $(2),-$(2),)/.$(1)$(if $(4),-$(4),)$(if $(2),-$(2),)_untared
-$(1)$(if $(4),-$(4),)_tar := $(TAR_DIR)/$(1)$(if $(4),-$(4),)$(if $(2),-$(2),).$(3)
-$$($(1)$(if $(4),-$(4),)_untared): $$($(1)$(if $(4),-$(4),)_tar)
-	@mkdir -p $(SRC)/$(1)$(if $(2),-$(2),)
-	$(call UNTARCMD,$(1)$(if $(2),-$(2),))
+#$$(warning prepare_source->$(1), $(2), $(3), $(4), $(5))
+_untar := $$(dir $$(_src_dir)).src/$$(notdir $$(_src_dir))-$(5)
+_tarfile := $(TAR_DIR)/$(1)$(if $(4),-$(4),)$(if $(2),-$(2),).$(3)
+$$(_untar): $$(_tarfile)
+	rm -fr $$(_src_dir)
+	mkdir -p $$(dir $$@)
+	$(call UNTARCMD,$(_src_dir))
 
-$(1)_src := $$($(1)_src) $$($(1)$(if $(4),-$(4),)_untared)
-$$(if $$($(1)_src_dir),,$$(eval $(1)_src_dir := $(SRC)/$(1)$(if $(2),-$(2),)))
-#$$(warning $(1)_src_dir = $$($(1)_src_dir))
-#UNTAR_TGTS = $(SRC)/.$(notdir $(1)) $(UNTAR_TGTS)
+$(1)_srcdir-$(5) := $$(_src_dir)
+$(1)_src-$(5) := $$(_untar)
+$(1)_srcfile-$(5) := $$(_tarfile)
+
+$$(warning $$(_untar): $$(_tarfile), $$($(1)_src))
+endef
+
+# $1 = srcdir
+define PATCHCMD
+($$(call echo_cmd,-n,$$(INFO_PATCH_SRC) $$(notdir $$<) ...); patch -d $(1) -i $$< -p1 2>&1 >/dev/null \
+&& touch $$@ && $$(call echo_cmd,, done))
 endef
 
 # $1 = name
 # $2 = version
 # $3 = patch name
 # $4 = dependency (optional)
+# $5 = patch#
 define patch_source_
-$(1)_patch_dest := $$(dir $$(firstword $$($(1)_src))).$$(notdir $$($(1)_patch_file))
-$$($(1)_patch_dest): $$($(1)_patch_file) $$($(1)_src) $(4)
-	$(value PATCHCMD)
+#$$(warning patch_source, $(1),$(2),$(3),$(4),$(5))
+__$(1)_patch_count-$(5) := $$(__$(1)_patch_count-$(5)) x
+_patched := $(SRC)/.src/$$(notdir $$(_src_dir))_patched_$$(words $$(__$(1)_patch_count-$(5)))-$(5)
+_patch_file := $(DOWNLOAD)/$(3)
+$$(_patched): $$(_patch_file) $$($(1)_src-$(5)) $(4)
+	$(call PATCHCMD,$$($(1)_srcdir-$(5)))
 
-$(1)-$(3)_patched := $$($(1)-$(3)_patched) $$($(1)-$(3)_patch_dest) 
-#$$(warning $(1)-$(3)_patch_dest = $$($(1)-$(3)_patch_dest))
-#$$(warning $(1)_patched = $$($(1)_patched))
+$(1)_patched-$(5) := $$($(1)_patched-$(5)) $$(_patched) 
+
+$$(warning $$(_patched): $$(_patch_file) $$($(1)_src-$(5)) $(4) )
+#$$(warning $$($(1)_patched-$(5)))
 endef
 
 # $1 = pache list
 # $2 = basename, like gcc
 # $3 = version
-patch_source = $(foreach p,$(1),$(eval $(call patch_source_,$(2),$(3),$(p),$($(2)_src))))
+# $4 = pass#
+patch_source = $(foreach p,$(1),$(eval $(call patch_source_,$(2),$(3),$(p),$($(2)_src),$(4))))
 
 # $1 src dir
 # $2 dest dir
@@ -109,7 +120,7 @@ define MK_ENV2_
 export CC="$(TARGET)-gcc" ;\
 export CXX="$(TARGET)-g++";\
 export AR="$(TARGET)-ar"; \
-export AS="$(TARGET)-as";\
+export AS="$(TARGET)-as";\.
 export RANLIB="$(TARGET)-ranlib";\
 export LD="$(TARGET)-ld";\
 export STRIP="$(TARGET)-strip";\
@@ -119,7 +130,6 @@ endef
 TOUCH_DEST = mkdir -p $(dir $@) && touch $@
 
 _get_file := $(shell which curl 2>&1 >/dev/null && echo curl -L -o || echo wget --no-check-certificate -O)
-$(waring $(_get_file))
 
 # $1 - target file
 # $2 - url
@@ -186,33 +196,35 @@ go-chroot = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i 
 # $1 - run command in chroot
 chroot-run = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i HOME=/root TERM="${TERM}" PS1='\u:\W $(sharp) ' BASE=/chroot-bld PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin sh -c '$1'
 
+
 # $1 = name
 # $2 = version
-define build_tgt_pass1
-$(1)_SRC := $$(_src_dir)
-$(1)_1_dest := $$(CROSS_TOOLS)/.bld/$(1)_1
-$(1)_1_bld := $$(BLD)/$(1)-$(2)
-_$(1)_1_deps := $$(foreach d,$($(1)_1_deps),$$(dir $$($(1)_1_dest))$$(d))
-$(warning $(1) deps:=$(_$(1)_1_deps))
-PASS1_TGTS := $$($(1)_1_dest) $$(PASS1_TGTS)
-$$(warning $(1)=$$($(1)_preconfig))
-$$($(1)_1_dest): $$($(1)_src) $$($(1)_patch_dest) $$(_$(1)_1_deps) 
-	(rm -fr $$($(1)_1_bld) && mkdir -p $$($(1)_1_bld) && \
+# $3 = pass#
+define build_tgt_pass
+$$(warning build_tgt_pass->$(1), $(2), $(3))
+$$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)) $$($(1)_patched-$(3)) $$($(1)_deps-$(3))
+	(rm -fr $(_bld_dir) && mkdir -p $(_bld_dir) && \
 			(($$(if $$($(1)_preconfig),$$($(1)_preconfig),true))&&\
 			(source $(MK)/env.sh ; $(MK_ENV1); \
-			cd $$($(1)_1_bld) && \
+			cd $(_bld_dir) && \
 			$$(if $$($(1)_configcmd),$$($(1)_configcmd),true) && \
 			$$(if $$($(1)_makecmd),$$($(1)_makecmd),true)&& \
 			$$(if $$($(1)_installcmd),$$($(1)_installcmd),true)&& \
 			$$(if $$($(1)_postinstallcmd),$$($(1)_postinstallcmd),true) &&\
 			$$(TOUCH_DEST) ))\
 	)
+$(1)-$(3) := $$(CROSS_TOOLS)/.bld/$(1)-$(3)
+
+TGTS_PASS-$(3) := $(TGTS_PASS-$(3)) $$(CROSS_TOOLS)/.bld/$(1)-$(3)
+
+$$(warning $$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)), $$($(1)_patched-$(3)), $$($(1)_deps-$(3)))
 endef
 
 # $1 = name
 # $2 = version
 define download_tar_file
-$(DOWNLOAD)/$$($(1)_tar_file):
+_dw_file := $(DOWNLOAD)/$$($(1)_tar_file)
+$$(_dw_file):
 	@$$(call echo_cmd,,Fetch $$($(1)_pkg_url) --> $$@ ... ,,)
 	($$(_get_file) $$@ $$($(1)_pkg_url) && touch $$@; \
 		($$(if $$(strip $$($(1)_md5sum)),echo "$$(strip $$($(1)_md5sum))  $$@" | md5sum -c &>/dev/null,true) || \
@@ -221,10 +233,10 @@ $(DOWNLOAD)/$$($(1)_tar_file):
 		$$(call echo_cmd,,Done!,,))
 
 PKG_DOWNLOADED := $(DOWNLOAD)/$$($(1)_tar_file) $$(PKG_DOWNLOADED)
-
+$$(warning $$(_dw_file): )
 endef
 
-__pairmap = $(if $2$3,$(eval $(call $1,$(firstword $2),$(firstword $3))) $(call __pairmap,$(wordlist 2,$(words $2),$2),$(wordlist 2,$(words $3),$3)),)
+__pairmap = $(if $2$3,$(eval $(call $1,$(firstword $2),$(firstword $3))) $(call __pairmap,$1,$(wordlist 2,$(words $2),$2),$(wordlist 2,$(words $3),$3)),)
 # $1 = file name
 # $2 = file url
 define download_patch_file
@@ -240,8 +252,7 @@ $$($(NAME)_patch_file):
 			$$(call echo_err,,Failed); rm -f $$@; exit 1; $\\
 		fi)
 
-PATCHES_DOWNLOADED := $($(NAME)_patch_file) $(PATCHES_DOWNLOADED)
+PATCHES_DOWNLOADED := $$($(NAME)_patch_file) $$(PATCHES_DOWNLOADED)
+$$(warning $$($(NAME)_patch_file): )
 endef
-
-
 

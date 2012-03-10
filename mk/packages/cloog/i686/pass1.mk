@@ -2,7 +2,7 @@
 # makefile for pass1
 #
 
-PASS1 := y
+PASS := 1
 
 preconfigcmd := cd $(_src_dir) && cp -v configure{,.orig} && \
 		sed -e "/LD_LIBRARY_PATH=/d" configure.orig > configure

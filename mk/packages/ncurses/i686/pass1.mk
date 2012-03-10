@@ -2,7 +2,7 @@
 # makefile for pass1
 #
 
-PASS1 := y
+PASS := 1
 
 configcmd := $(_src_dir)/configure --prefix=$(CROSS_TOOLS) --without-debug --without-shared
 

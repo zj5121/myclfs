@@ -2,13 +2,13 @@
 # makefile for pass1
 #
 
-PASS1 := y
+PASS := 1
 
 preconfigcmd := cd $(_src_dir) && cp -v Makeconfig{,.orig} && sed -e 's/-lgcc_eh//g' Makeconfig.orig > Makeconfig && \
-		(echo "libc_cv_forced_unwind=yes" > config.cache ;\
+		(cd $(_bld_dir) && (echo "libc_cv_forced_unwind=yes" > config.cache ;\
 		echo "libc_cv_c_cleanup=yes" >> config.cache; \
 		echo "libc_cv_gnu89_inline=yes" >> config.cache; \
-		echo "libc_cv_ssp=no" >> config.cache)
+		echo "libc_cv_ssp=no" >> config.cache))
 
 configcmd := BUILD_CC="gcc" CC="$(TARGET)-gcc" \
 		    AR="$(TARGET)-ar" RANLIB="$(TARGET)-ranlib" \
@@ -23,8 +23,6 @@ configcmd := BUILD_CC="gcc" CC="$(TARGET)-gcc" \
 makecmd := make 
 
 installcmd := make install inst_vardbdir=$(TOOLS)/var/db
-
-deps := gcc
 
 include $(MK)/footer.mk
 

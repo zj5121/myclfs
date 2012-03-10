@@ -18,7 +18,7 @@ include $(MK)/config-$(TARGET_ARCH).mk
 include $(MK)/rules.mk
 include $(MK)/packages_def.mk
 
-.PHONY: prep all
+.PHONY: prep all tar_files build-1 build-2 build
 
 all: prep build
 
@@ -43,10 +43,20 @@ include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/config.mk
 _src_dir := $(SRC)/$$(NAME)-$$(VERSION)
 _bld_dir := $(BLD)/$$(NAME)-$$(VERSION)
 include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass1.mk
+$$(if $$(wildcard $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass2.mk),\
+	$$(eval include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass2.mk),\
+	$$(eval include $$(MK)/pass2_default.mk))
 
 endef
 
+
 $(foreach p,$(PACKAGES),$(eval $(builder)))
 
-build: prep $(PKG_DOWNLOADED) $(PATCHES_DOWNLOADED) $(PASS1_TGTS)
+tar_files : $(PKG_DOWNLOADED) $(PATCHES_DOWNLOADED)
+
+build-1 : $(TGTS_PASS-1)
+
+build-2 : $(TGTS_PASS-2)
+
+build: prep tar_files build-1 build-2
 
