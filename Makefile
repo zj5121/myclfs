@@ -42,10 +42,17 @@ define builder
 include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/config.mk
 _src_dir := $(SRC)/$$(NAME)-$$(VERSION)
 _bld_dir := $(BLD)/$$(NAME)-$$(VERSION)
-include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass1.mk
+
+-include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass1.mk
+
 $$(if $$(wildcard $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass2.mk),\
 	$$(eval include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass2.mk),\
 	$$(eval include $$(MK)/pass2_default.mk))
+
+$$(if $$(wildcard $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass3.mk),\
+	$$(eval include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass3.mk),\
+	$$(eval include $$(MK)/pass3_default.mk))
+
 
 endef
 
@@ -58,5 +65,7 @@ build-1 : $(TGTS_PASS-1)
 
 build-2 : $(TGTS_PASS-2)
 
-build: prep tar_files build-1 build-2
+build-3 : $(TGTS_PASS-3)
+
+build: prep tar_files build-1 build-2 build-3
 

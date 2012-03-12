@@ -65,7 +65,7 @@ $(1)_srcdir-$(5) := $$(_src_dir)
 $(1)_src-$(5) := $$(_untar)
 $(1)_srcfile-$(5) := $$(_tarfile)
 
-$$(warning $$(_untar): $$(_tarfile), $$($(1)_src))
+#$$(warning $$(_untar): $$(_tarfile), $$($(1)_src))
 endef
 
 # $1 = srcdir
@@ -89,7 +89,7 @@ $$(_patched): $$(_patch_file) $$($(1)_src-$(5)) $(4)
 
 $(1)_patched-$(5) := $$($(1)_patched-$(5)) $$(_patched) 
 
-$$(warning $$(_patched): $$(_patch_file) $$($(1)_src-$(5)) $(4) )
+#$$(warning $$(_patched): $$(_patch_file) $$($(1)_src-$(5)) $(4) )
 #$$(warning $$($(1)_patched-$(5)))
 endef
 
@@ -109,23 +109,27 @@ mkdir -p "$2" && (cd "$1" && tar cf - \
 	.) | (cd "$2" && tar xf -) 
 endef
 
-define MK_ENV1
-export PREFIX=$(BASE); \
+define SETUP_ENV_COMMON
 export PATH=$(CROSS_TOOLS)/bin:/bin:/usr/bin 
 endef
 
-MK_ENV2 = $(call MK_ENV2_)
+SETUP_ENV-1 = $(SETUP_ENV_COMMON)
+#$(warning env-1=$(SETUP_ENV-1))
+SETUP_ENV-2 = $(SETUP_ENV-1)
+#$(warning env-2=$(SETUP_ENV-2))
 
-define MK_ENV2_
+define SETUP_ENV-3_
 export CC="$(TARGET)-gcc" ;\
 export CXX="$(TARGET)-g++";\
 export AR="$(TARGET)-ar"; \
-export AS="$(TARGET)-as";\.
+export AS="$(TARGET)-as";\
 export RANLIB="$(TARGET)-ranlib";\
 export LD="$(TARGET)-ld";\
-export STRIP="$(TARGET)-strip";\
-export PATH=$(CROSS_TOOLS)/bin:/bin:/usr/bin 
+export STRIP="$(TARGET)-strip"
 endef
+
+SETUP_ENV-3 = $(SETUP_ENV-2) ; $(SETUP_ENV-3_)
+#$(warning env-3=$(SETUP_ENV-3))
 
 TOUCH_DEST = mkdir -p $(dir $@) && touch $@
 
@@ -201,30 +205,30 @@ chroot-run = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i
 # $2 = version
 # $3 = pass#
 define build_tgt_pass
-$$(warning build_tgt_pass->$(1), $(2), $(3))
+#$$(warning build_tgt_pass->$(1), $(2), $(3))
 $$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)) $$($(1)_patched-$(3)) $$($(1)_deps-$(3))
 	(rm -fr $(_bld_dir) && mkdir -p $(_bld_dir) && \
-			(($$(if $$($(1)_preconfig),$$($(1)_preconfig),true))&&\
-			(source $(MK)/env.sh ; $(MK_ENV1); \
+			(($$(if $$($(1)_preconfig_$(3)),$$($(1)_preconfig_$(3)),true))&&\
+			(env -i /bin/sh --noprofile --norc -c "source $(MK)/env-$(3).sh ; $(SETUP_ENV-$(3)); \
 			cd $(_bld_dir) && \
-			$$(if $$($(1)_configcmd),$$($(1)_configcmd),true) && \
-			$$(if $$($(1)_makecmd),$$($(1)_makecmd),true)&& \
-			$$(if $$($(1)_installcmd),$$($(1)_installcmd),true)&& \
-			$$(if $$($(1)_postinstallcmd),$$($(1)_postinstallcmd),true) &&\
+			$$(if $$($(1)_configcmd_$(3)),$$($(1)_configcmd_$(3)),true) && \
+			$$(if $$($(1)_afterconfig_$(3)),$$($(1)_afterconfig_$(3)),true) && \
+			$$(if $$($(1)_makecmd_$(3)),$$($(1)_makecmd_$(3)),true)&& \
+			$$(if $$($(1)_installcmd_$(3)),$$($(1)_installcmd_$(3)),true)&& \
+			$$(if $$($(1)_postinstallcmd_$(3)),$$($(1)_postinstallcmd_$(3)),true)" &&\
 			$$(TOUCH_DEST) ))\
 	)
 $(1)-$(3) := $$(CROSS_TOOLS)/.bld/$(1)-$(3)
 
 TGTS_PASS-$(3) := $(TGTS_PASS-$(3)) $$(CROSS_TOOLS)/.bld/$(1)-$(3)
 
-$$(warning $$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)), $$($(1)_patched-$(3)), $$($(1)_deps-$(3)))
+#$$(warning $$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)), $$($(1)_patched-$(3)), $$($(1)_deps-$(3)))
 endef
 
 # $1 = name
 # $2 = version
 define download_tar_file
-_dw_file := $(DOWNLOAD)/$$($(1)_tar_file)
-$$(_dw_file):
+$(DOWNLOAD)/$$($(1)_tar_file):
 	@$$(call echo_cmd,,Fetch $$($(1)_pkg_url) --> $$@ ... ,,)
 	($$(_get_file) $$@ $$($(1)_pkg_url) && touch $$@; \
 		($$(if $$(strip $$($(1)_md5sum)),echo "$$(strip $$($(1)_md5sum))  $$@" | md5sum -c &>/dev/null,true) || \
@@ -233,7 +237,7 @@ $$(_dw_file):
 		$$(call echo_cmd,,Done!,,))
 
 PKG_DOWNLOADED := $(DOWNLOAD)/$$($(1)_tar_file) $$(PKG_DOWNLOADED)
-$$(warning $$(_dw_file): )
+#$$(warning $$($(DOWNLOAD)/$$($(1)_tar_file)): )
 endef
 
 __pairmap = $(if $2$3,$(eval $(call $1,$(firstword $2),$(firstword $3))) $(call __pairmap,$1,$(wordlist 2,$(words $2),$2),$(wordlist 2,$(words $3),$3)),)
@@ -253,6 +257,6 @@ $$($(NAME)_patch_file):
 		fi)
 
 PATCHES_DOWNLOADED := $$($(NAME)_patch_file) $$(PATCHES_DOWNLOADED)
-$$(warning $$($(NAME)_patch_file): )
+#$$(warning $$($(NAME)_patch_file): )
 endef
 
