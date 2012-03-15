@@ -110,6 +110,16 @@ mkdir -p "$2" && (cd "$1" && tar cf - \
 endef
 
 define SETUP_ENV_COMMON
+export MK=$(MK); \
+export _src_dir=$(_src_dir) ; \
+export _bld_dir=$(_bld_dir) ; \
+export TARGET=$(TARGET) ; \
+export HOST=$(HOST) ;\
+export ARCH=$(ARCH) ;\
+export BASE=$(BASE) ;\
+export CROSS_TOOLS=$(CROSS_TOOLS) ; \
+export TOOLS=$(TOOLS) ; \
+export MMAKE="make"; \
 export PATH=$(CROSS_TOOLS)/bin:/bin:/usr/bin 
 endef
 
@@ -200,29 +210,27 @@ go-chroot = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i 
 # $1 - run command in chroot
 chroot-run = setarch linux32 sudo /usr/sbin/chroot '$(BASE)' $(TOOLS)/bin/env -i HOME=/root TERM="${TERM}" PS1='\u:\W $(sharp) ' BASE=/chroot-bld PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin sh -c '$1'
 
-
+shell_run := env -i /bin/sh --noprofile --norc -c
 # $1 = name
 # $2 = version
 # $3 = pass#
 define build_tgt_pass
-#$$(warning build_tgt_pass->$(1), $(2), $(3))
+$$(warning build_tgt_pass->$(1), $(2), $(3))
 $$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)) $$($(1)_patched-$(3)) $$($(1)_deps-$(3))
-	(rm -fr $(_bld_dir) && mkdir -p $(_bld_dir) && \
-			(($$(if $$($(1)_preconfig_$(3)),$$($(1)_preconfig_$(3)),true))&&\
-			(env -i /bin/sh --noprofile --norc -c "source $(MK)/env-$(3).sh ; $(SETUP_ENV-$(3)); \
+	@$$(call echo_cmd,,"I: Build $(1)-$(2) pass $(3) ...")
+	rm -fr $(_bld_dir) && mkdir -p $(_bld_dir) && \
+		($(shell_run) "source $(MK)/env-$(3).sh ; $(SETUP_ENV-$(3)); \
+			export _mk_dir=$(MK)/packages/$(NAME)/$(TARGET_ARCH) ;\
 			cd $(_bld_dir) && \
-			$$(if $$($(1)_configcmd_$(3)),$$($(1)_configcmd_$(3)),true) && \
-			$$(if $$($(1)_afterconfig_$(3)),$$($(1)_afterconfig_$(3)),true) && \
-			$$(if $$($(1)_makecmd_$(3)),$$($(1)_makecmd_$(3)),true)&& \
-			$$(if $$($(1)_installcmd_$(3)),$$($(1)_installcmd_$(3)),true)&& \
-			$$(if $$($(1)_postinstallcmd_$(3)),$$($(1)_postinstallcmd_$(3)),true)" &&\
-			$$(TOUCH_DEST) ))\
-	)
+			${_mk_dir}/build$(3).sh") && \
+	$$(TOUCH_DEST) 
+
 $(1)-$(3) := $$(CROSS_TOOLS)/.bld/$(1)-$(3)
 
 TGTS_PASS-$(3) := $(TGTS_PASS-$(3)) $$(CROSS_TOOLS)/.bld/$(1)-$(3)
 
-#$$(warning $$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)), $$($(1)_patched-$(3)), $$($(1)_deps-$(3)))
+$$(warning $$(CROSS_TOOLS)/.bld/$(1)-$(3): $$($(1)_src-$(3)), $$($(1)_patched-$(3)), $$($(1)_deps-$(3)))
+$$(warning TGTS_PASS-$(3) := $$(TGTS_PASS-$(3)))
 endef
 
 # $1 = name
@@ -259,4 +267,3 @@ $$($(NAME)_patch_file):
 PATCHES_DOWNLOADED := $$($(NAME)_patch_file) $$(PATCHES_DOWNLOADED)
 #$$(warning $$($(NAME)_patch_file): )
 endef
-

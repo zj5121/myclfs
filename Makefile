@@ -42,17 +42,13 @@ define builder
 include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/config.mk
 _src_dir := $(SRC)/$$(NAME)-$$(VERSION)
 _bld_dir := $(BLD)/$$(NAME)-$$(VERSION)
-
--include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass1.mk
-
-$$(if $$(wildcard $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass2.mk),\
-	$$(eval include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass2.mk),\
-	$$(eval include $$(MK)/pass2_default.mk))
-
-$$(if $$(wildcard $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass3.mk),\
-	$$(eval include $$(MK)/packages/$$(p)/$$(TARGET_ARCH)/pass3.mk),\
-	$$(eval include $$(MK)/pass3_default.mk))
-
+$$(NAME)_PASSES := $$(PASSES)
+$$(warning ---- $$(NAME),$$(VERSION),$$($$(NAME)_PASSES))
+$$(foreach i,$$($$(NAME)_PASSES),$$(if $$(wildcard $$(MK)/packages/$$(NAME)/$$(TARGET_ARCH)/pass$$(i).mk),\
+	$$(eval include $$(MK)/packages/$$(NAME)/$$(TARGET_ARCH)/pass$$(i).mk),\
+	$$(if $$(wildcard $$(MK)/pass$$(i)_default.mk),$$(eval include $$(MK)/pass$$(i)_default.mk),))\
+	$$(eval PASS := $$(i)) \
+	$$(eval include $$(MK)/footer.mk))
 
 endef
 

@@ -11,3 +11,5 @@ DEPS := cloog
 
 MD5SUM := ee0f10756c84979622b992a4a61ea3f5
 PKG_URL := http://ftp.gnu.org/gnu/binutils/binutils-2.22.tar.bz2 
+
+PASSES := 1 3

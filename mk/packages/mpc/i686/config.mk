@@ -13,3 +13,4 @@ SHA1SUM := 229722d553030734d49731844abfef7617b64f1a
 
 PKG_URL := http://www.multiprecision.org/mpc/download/mpc-0.9.tar.gz
 
+PASSES := 1 3

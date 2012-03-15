@@ -11,3 +11,4 @@ MD5SUM := 4cea34b087b060772511e066e2038196
 
 PKG_URL := ftp://ftp.astron.com/pub/file/file-5.10.tar.gz 
 
+PASSES := 1

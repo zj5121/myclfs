@@ -34,7 +34,7 @@ $(NAME)_postinstallcmd_$(PASS) := $(postinstallcmd)
 
 # build target
 $(NAME)_deps-$(PASS) := $(foreach d,$(DEPS),$($(d)-$(PASS)))
-#$(warning >>>>> $(NAME)_deps-$(PASS)=$($(NAME)_deps-$(PASS)), $(DEPS))
+$(warning >>>>> $(NAME)_deps-$(PASS)=$($(NAME)_deps-$(PASS)), $(DEPS))
 $(eval $(call patch_source,$(PATCHES),$(NAME),$(VERSION),$(PASS)))
 $(eval $(call build_tgt_pass,$(NAME),$(VERSION),$(PASS)))
 
