@@ -24,4 +24,4 @@ EOF
     --without-bash-malloc --cache-file=config.cache
 make && \
 make install && \
-ln -sv bash /tools/bin/sh
+ln -sfv bash /tools/bin/sh

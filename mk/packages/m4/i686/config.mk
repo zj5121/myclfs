@@ -11,4 +11,4 @@ MD5SUM := 7548ec061a1ba993790159764f522d0e
 
 PKG_URL := http://ftp.gnu.org/gnu/m4/m4-1.4.16.tar.xz
 
-PASSES := 1
+PASSES := 1 3

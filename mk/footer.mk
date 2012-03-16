@@ -33,7 +33,8 @@ $(NAME)_installcmd_$(PASS) := $(installcmd)
 $(NAME)_postinstallcmd_$(PASS) := $(postinstallcmd)
 
 # build target
-$(NAME)_deps-$(PASS) := $(foreach d,$(DEPS),$($(d)-$(PASS)))
+#
+$(NAME)_deps-$(PASS) := $(foreach d,$(DEPS),$(if $(filter $(d),$$($(pass$(PASS)_list))),$($(d)),$($(d)-$(PASS))))
 $(warning >>>>> $(NAME)_deps-$(PASS)=$($(NAME)_deps-$(PASS)), $(DEPS))
 $(eval $(call patch_source,$(PATCHES),$(NAME),$(VERSION),$(PASS)))
 $(eval $(call build_tgt_pass,$(NAME),$(VERSION),$(PASS)))
